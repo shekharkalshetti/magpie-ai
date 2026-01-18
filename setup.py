@@ -1,9 +1,9 @@
-"""Setup script for Triton SDK."""
+"""Setup script for Magpie AI SDK."""
 from setuptools import setup, find_packages
 
 setup(
-    name="triton-sdk",
-    version="0.1.0",
+    name="magpie-ai",
+    version="0.2.2",
     author="Triton Team",
     author_email="team@triton.dev",
     description="Enterprise-grade LLM middleware for monitoring and metadata tracking",
@@ -12,7 +12,7 @@ setup(
     url="https://github.com/triton/sdk",
     packages=find_packages(),
     package_data={
-        "triton": ["py.typed"],
+        "magpie_ai": ["py.typed"],
     },
     classifiers=[
         "Development Status :: 3 - Alpha",

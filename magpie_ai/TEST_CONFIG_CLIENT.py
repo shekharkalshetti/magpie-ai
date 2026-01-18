@@ -37,7 +37,7 @@ triton.configure(
 
 # Example 3: Get current configuration
 """
-from triton.config import get_config
+from magpie_ai.config import get_config
 
 config = get_config()
 print(f"API Key configured: {config.is_configured()}")
@@ -79,7 +79,7 @@ triton.configure(
 """
 import asyncio
 from datetime import datetime
-from triton.client import get_client
+from magpie_ai.client import get_client
 
 async def send_example_log():
     client = get_client()
@@ -111,7 +111,7 @@ asyncio.run(send_example_log())
 # Example 2: Send a log synchronously
 """
 from datetime import datetime
-from triton.client import get_client
+from magpie_ai.client import get_client
 
 client = get_client()
 
@@ -126,7 +126,7 @@ print(f"Log sent: {success}")
 
 # Example 3: Minimal log (only required fields)
 """
-from triton.client import get_client
+from magpie_ai.client import get_client
 
 client = get_client()
 
@@ -139,7 +139,7 @@ success = client.send_log_sync(
 
 # Example 4: Log with error
 """
-from triton.client import get_client
+from magpie_ai.client import get_client
 
 client = get_client()
 
@@ -157,7 +157,7 @@ success = client.send_log_sync(
 # Example 1: Missing configuration
 """
 # If TRITON_API_KEY is not set
-from triton.client import get_client
+from magpie_ai.client import get_client
 
 client = get_client()
 success = client.send_log_sync(status="success")
@@ -177,7 +177,7 @@ triton.configure(
     timeout=2
 )
 
-from triton.client import get_client
+from magpie_ai.client import get_client
 
 client = get_client()
 success = client.send_log_sync(status="success")
@@ -197,7 +197,7 @@ triton.configure(
     timeout=0.1  # Very short timeout
 )
 
-from triton.client import get_client
+from magpie_ai.client import get_client
 
 client = get_client()
 success = client.send_log_sync(status="success")
@@ -216,7 +216,7 @@ triton.configure(
     backend_url="http://localhost:8000"
 )
 
-from triton.client import get_client
+from magpie_ai.client import get_client
 
 client = get_client()
 success = client.send_log_sync(status="success")
@@ -228,7 +228,7 @@ success = client.send_log_sync(status="success")
 
 # Example 5: Malformed payload
 """
-from triton.client import get_client
+from magpie_ai.client import get_client
 from datetime import datetime
 
 client = get_client()
@@ -250,8 +250,8 @@ success = client.send_log_sync(
 
 # Pattern 1: Check if configured before using
 """
-from triton.config import get_config
-from triton.client import get_client
+from magpie_ai.config import get_config
+from magpie_ai.client import get_client
 
 config = get_config()
 
@@ -265,7 +265,7 @@ else:
 # Pattern 2: Conditional monitoring
 """
 import os
-from triton.config import get_config
+from magpie_ai.config import get_config
 
 # Only enable in production
 is_production = os.getenv("ENVIRONMENT") == "production"
@@ -278,7 +278,7 @@ triton.configure(enabled=is_production)
 
 # Pattern 3: Custom error handling
 """
-from triton.client import get_client
+from magpie_ai.client import get_client
 import logging
 
 logger = logging.getLogger(__name__)

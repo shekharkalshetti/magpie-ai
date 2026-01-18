@@ -11,7 +11,7 @@ from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 from enum import Enum
 
-from triton.prompt import PromptCache, get_system_prompt_or_default
+from magpie_ai.prompt import PromptCache, get_system_prompt_or_default
 
 
 class ModerationSeverity(Enum):

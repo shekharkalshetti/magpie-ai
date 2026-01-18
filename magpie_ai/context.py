@@ -22,8 +22,8 @@ from typing import Dict, Any, Optional
 from datetime import datetime
 import uuid
 
-from triton.client import get_client
-from triton.validation import sanitize_metadata
+from magpie_ai.client import get_client
+from magpie_ai.validation import sanitize_metadata
 
 
 # Thread-local storage for context metadata

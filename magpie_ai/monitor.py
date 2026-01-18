@@ -10,23 +10,25 @@ import functools
 import threading
 import atexit
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Callable, Dict, Any, Optional
+from typing import Callable, Dict, Any, Optional, TypeVar, cast
 from datetime import datetime
 import uuid
 import inspect
 import json
 
-from triton.client import get_client
-from triton.context import get_context_metadata
-from triton.pii import PIIDetector, PIIResult, get_detector
-from triton.content_moderation import (
+from magpie_ai.client import get_client
+from magpie_ai.context import get_context_metadata
+from magpie_ai.pii import PIIDetector, PIIResult, get_detector
+from magpie_ai.content_moderation import (
     ContentModerator,
     ContentModerationError,
     ModerationResult,
     get_moderator
 )
-from triton.pricing import calculate_costs, get_context_utilization
-from triton.token_extraction import extract_tokens_from_response, extract_text_from_response
+from magpie_ai.pricing import calculate_costs, get_context_utilization
+from magpie_ai.token_extraction import extract_tokens_from_response, extract_text_from_response
+
+F = TypeVar("F", bound=Callable[..., Any])
 
 # Track active logging threads to wait for them on exit
 _active_threads = []
@@ -34,6 +36,45 @@ _threads_lock = threading.Lock()
 
 # Thread pool for parallel processing (PII + content moderation)
 _executor: Optional[ThreadPoolExecutor] = None
+
+
+def _validate_monitor_params(
+    project_id: Optional[str],
+    custom: Optional[Dict[str, Any]],
+    model: Optional[str],
+    input_token_price: Optional[float],
+    output_token_price: Optional[float],
+) -> None:
+    """Validate monitor decorator parameters."""
+    if not project_id or not isinstance(project_id, str):
+        raise ValueError(
+            "project_id is required and must be a non-empty string")
+
+    if custom is not None and not isinstance(custom, dict):
+        raise TypeError("custom parameter must be a dictionary")
+
+    # Pricing validation: either use model name or explicit prices, not both
+    has_model = model is not None
+    has_explicit_pricing = (input_token_price is not None) or (
+        output_token_price is not None)
+
+    if has_model and has_explicit_pricing:
+        raise ValueError(
+            "Cannot specify both 'model' and explicit pricing parameters. "
+            "Use either model='gpt-4' OR input_token_price/output_token_price, not both."
+        )
+
+    if input_token_price is not None and not isinstance(input_token_price, (int, float)):
+        raise TypeError("input_token_price must be a number")
+
+    if output_token_price is not None and not isinstance(output_token_price, (int, float)):
+        raise TypeError("output_token_price must be a number")
+
+    if input_token_price is not None and input_token_price < 0:
+        raise ValueError("input_token_price must be non-negative")
+
+    if output_token_price is not None and output_token_price < 0:
+        raise ValueError("output_token_price must be non-negative")
 
 
 def _get_executor() -> ThreadPoolExecutor:
@@ -81,7 +122,7 @@ def monitor(
     model: Optional[str] = None,
     input_token_price: Optional[float] = None,
     output_token_price: Optional[float] = None
-):
+) -> Callable[[F], F]:
     """
     Decorator for monitoring function execution.
 
@@ -102,6 +143,10 @@ def monitor(
         input_token_price: Explicit input token price per 1M tokens (use if model not in database)
         output_token_price: Explicit output token price per 1M tokens (use if model not in database)
 
+    Raises:
+        ValueError: If project_id is empty, pricing config is invalid, or both model and explicit pricing are provided
+        TypeError: If custom is not a dict or pricing values are not numeric
+
     Captured Metrics:
         - Request tracing: trace_id, project_id
         - Latency: total_latency_ms
@@ -119,15 +164,15 @@ def monitor(
 
     Pricing Configuration:
         Option 1 - Use model name (recommended):
-            @triton.monitor(..., model="gpt-4")
+            @magpie_ai.monitor(..., model="gpt-4")
 
         Option 2 - Explicit pricing:
-            @triton.monitor(..., input_token_price=0.03, output_token_price=0.06)
+            @magpie_ai.monitor(..., input_token_price=0.03, output_token_price=0.06)
 
         Cannot mix both options.
 
     Example:
-        @triton.monitor(
+        @magpie_ai.monitor(
             project_id="my-project",
             model="gpt-4",
             pii=True,
@@ -146,9 +191,18 @@ def monitor(
         - Fails open - never crashes your application
         - Thread-safe - can be used in multi-threaded environments
     """
-    def decorator(func: Callable) -> Callable:
+    # Validate all parameters upfront
+    _validate_monitor_params(
+        project_id=project_id,
+        custom=custom,
+        model=model,
+        input_token_price=input_token_price,
+        output_token_price=output_token_price,
+    )
+
+    def decorator(func: F) -> F:
         @functools.wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             return _execute_monitored(
                 func=func,
                 args=args,
@@ -165,7 +219,7 @@ def monitor(
                 input_token_price=input_token_price,
                 output_token_price=output_token_price
             )
-        return wrapper
+        return cast(F, wrapper)
 
     return decorator
 
@@ -302,7 +356,7 @@ def _execute_monitored(
                     input_was_blocked = True
                     # Convert dict back to ModerationResult for the exception
                     # to maintain the API contract
-                    from triton.content_moderation import ModerationResult
+                    from magpie_ai.content_moderation import ModerationResult
                     mod_result = ModerationResult(
                         is_safe=moderation_info.get('is_safe', False),
                         action=moderation_info.get('action'),
@@ -313,7 +367,7 @@ def _execute_monitored(
                     # Will be caught below and raise ContentModerationError in finally
                     raise ContentModerationError(
                         f"Input blocked due to policy violations: "
-                        f"{moderation_info.get('violated_policies', [])}", 
+                        f"{moderation_info.get('violated_policies', [])}",
                         mod_result
                     )
 
@@ -407,7 +461,7 @@ def _execute_monitored(
         # For blocked inputs, send log synchronously to get log_id for async task
         # For other cases, send asynchronously as before
         log_id = None
-        
+
         if input_was_blocked:
             # Synchronous send for blocked input to get log_id
             try:
@@ -478,7 +532,7 @@ def _execute_monitored(
         ):
             try:
                 from src.tasks.moderation_tasks import moderate_output
-                
+
                 # Queue async moderation task
                 moderate_output.delay(
                     execution_log_id=str(log_id),

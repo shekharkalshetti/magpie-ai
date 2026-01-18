@@ -3,8 +3,8 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "triton-sdk"
-version = "0.1.0"
+name = "magpie-ai"
+version = "0.2.2"
 description = "Enterprise-grade LLM middleware for monitoring and metadata tracking"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -33,9 +33,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/triton/sdk"
+Homepage = "https://github.com/triton"
 Documentation = "https://docs.triton.dev"
-Repository = "https://github.com/triton/sdk"
+Repository = "https://github.com/triton"
 
 [tool.black]
 line-length = 100

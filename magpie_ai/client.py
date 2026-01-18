@@ -9,8 +9,8 @@ import requests
 from typing import Dict, Any, Optional
 from datetime import datetime
 
-from triton.config import get_config
-from triton.validation import validate_metadata, sanitize_metadata
+from magpie_ai.config import get_config
+from magpie_ai.validation import validate_metadata, sanitize_metadata
 
 
 class TritonClient:

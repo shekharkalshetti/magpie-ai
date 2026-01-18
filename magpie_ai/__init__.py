@@ -5,14 +5,14 @@ Provides decorator and context manager for capturing LLM execution traces.
 """
 __version__ = "0.1.0"
 
-from triton.monitor import monitor
-from triton.context import context
-from triton.validation import (
+from magpie_ai.monitor import monitor
+from magpie_ai.context import context
+from magpie_ai.validation import (
     validate_metadata,
     clear_schema_cache,
     ValidationResult
 )
-from triton.content_moderation import ContentModerationError
+from magpie_ai.content_moderation import ContentModerationError
 
 __all__ = [
     "monitor",
