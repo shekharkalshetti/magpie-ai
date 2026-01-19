@@ -5,7 +5,6 @@ Handles async POST requests to log execution data.
 """
 import httpx
 import asyncio
-import requests
 from typing import Dict, Any, Optional
 from datetime import datetime
 
@@ -198,30 +197,30 @@ class MagpieClient:
             # Remove None values
             payload = {k: v for k, v in payload.items() if v is not None}
 
-            # Send synchronous HTTP request using requests library
-            response = requests.post(
-                f"{self.config.backend_url}/api/v1/logs/",
-                json=payload,
-                headers={"Authorization": f"Bearer {self.config.api_key}"},
-                timeout=self.config.timeout
-            )
+            # Send synchronous HTTP request using httpx
+            with httpx.Client(timeout=self.config.timeout) as client:
+                response = client.post(
+                    f"{self.config.backend_url}/api/v1/logs/",
+                    json=payload,
+                    headers={"Authorization": f"Bearer {self.config.api_key}"},
+                )
 
-            response.raise_for_status()
+                response.raise_for_status()
 
-            # Try to extract log ID from response
-            try:
-                response_data = response.json()
-                return response_data.get("id")
-            except:
-                return None
+                # Try to extract log ID from response
+                try:
+                    response_data = response.json()
+                    return response_data.get("id")
+                except:
+                    return None
 
-        except requests.exceptions.HTTPError as e:
+        except httpx.HTTPStatusError as e:
             # HTTP error (4xx, 5xx)
             if self.config.fail_open:
                 return None
             else:
                 raise
-        except requests.exceptions.Timeout as e:
+        except httpx.TimeoutException as e:
             # Request timeout
             if self.config.fail_open:
                 return None
