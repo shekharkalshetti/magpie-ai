@@ -34,8 +34,7 @@ def extract_tokens_from_response(
     if isinstance(response, str):
         output_tokens = estimate_tokens_from_text(response)
         # If we have input text, estimate input tokens too
-        input_tokens = estimate_tokens_from_text(
-            input_text) if input_text else None
+        input_tokens = estimate_tokens_from_text(input_text) if input_text else None
         return input_tokens, output_tokens
 
     # Try to extract from common attributes
@@ -47,8 +46,7 @@ def extract_tokens_from_response(
     output_text = extract_text_from_response(response)
     if output_text:
         output_tokens = estimate_tokens_from_text(output_text)
-        input_tokens = estimate_tokens_from_text(
-            input_text) if input_text else None
+        input_tokens = estimate_tokens_from_text(input_text) if input_text else None
         return input_tokens, output_tokens
 
     return None, None

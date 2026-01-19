@@ -22,10 +22,8 @@ class ValidationResult:
         unrecognized_keys: Optional[List[str]] = None,
     ):
         self.is_valid = is_valid
-        self.missing_keys: List[str] = missing_keys if missing_keys is not None else [
-        ]
-        self.invalid_types: Dict[str,
-                                 str] = invalid_types if invalid_types is not None else {}
+        self.missing_keys: List[str] = missing_keys if missing_keys is not None else []
+        self.invalid_types: Dict[str, str] = invalid_types if invalid_types is not None else {}
         self.invalid_enum_values: Dict[str, str] = (
             invalid_enum_values if invalid_enum_values is not None else {}
         )

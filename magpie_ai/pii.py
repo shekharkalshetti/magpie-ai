@@ -109,8 +109,7 @@ Now process the text above and return ONLY the JSON:"""
 
             # Parse response from LM Studio format
             response_text = (
-                api_result.get("choices", [{}])[0].get(
-                    "message", {}).get("content", "{}")
+                api_result.get("choices", [{}])[0].get("message", {}).get("content", "{}")
             )
 
             # Clean up response text - remove markdown code blocks if present
@@ -138,8 +137,7 @@ Now process the text above and return ONLY the JSON:"""
 
             contains_pii = detection_result.get("contains_pii", False)
             pii_types = detection_result.get("pii_types", [])
-            redacted_text = detection_result.get(
-                "redacted_text") if contains_pii else None
+            redacted_text = detection_result.get("redacted_text") if contains_pii else None
 
             result: PIIResult = PIIResult(
                 contains_pii=contains_pii, redacted_text=redacted_text, pii_types=pii_types

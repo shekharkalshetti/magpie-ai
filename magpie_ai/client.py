@@ -105,8 +105,7 @@ class MagpieClient:
         except httpx.HTTPStatusError as e:
             # HTTP error (4xx, 5xx)
             if self.config.fail_open:
-                print(
-                    f"[Magpie] Warning: HTTP error {e.response.status_code}: {e}")
+                print(f"[Magpie] Warning: HTTP error {e.response.status_code}: {e}")
                 return False
             else:
                 raise
