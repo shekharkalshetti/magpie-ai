@@ -26,7 +26,6 @@ import uuid
 from magpie_ai.client import get_client
 from magpie_ai.validation import sanitize_metadata
 
-
 # Thread-local storage for context metadata
 _context_storage = threading.local()
 
