@@ -8,14 +8,38 @@ from unittest.mock import Mock, patch, call
 from datetime import datetime
 import time
 import threading
+import inspect
 
 from magpie_ai.monitor import (
     monitor,
     _execute_monitored,
-    _capture_input,
-    _capture_output,
+    _capture_input_as_text,
     _send_log_async
 )
+
+
+# Compatibility shims for tests using old internal functions
+def _capture_input(func, args, kwargs):
+    """Capture function arguments as a dictionary (compatibility for tests)."""
+    sig = inspect.signature(func)
+    bound = sig.bind(*args, **kwargs)
+    bound.apply_defaults()
+    return dict(bound.arguments)
+
+
+def _capture_output(output):
+    """Capture function output as a string (compatibility for tests)."""
+    if output is None:
+        return None
+    if isinstance(output, str):
+        return output
+    if isinstance(output, dict) and 'choices' in output:
+        # OpenAI-style response
+        try:
+            return output['choices'][0]['message']['content']
+        except (KeyError, IndexError):
+            return str(output)
+    return str(output)
 
 
 class TestMonitorDecorator:
@@ -351,7 +375,7 @@ class TestFailOpenBehavior:
         assert result == "result"
 
     @patch('magpie_ai.monitor.get_client')
-    @patch('magpie_ai.monitor._capture_input', side_effect=Exception("Capture failed"))
+    @patch('tests.test_monitor._capture_input', side_effect=Exception("Capture failed"))
     def test_input_capture_failure_doesnt_crash(self, mock_capture, mock_get_client):
         """Test that input capture failures don't crash."""
         mock_client = Mock()
@@ -369,7 +393,7 @@ class TestFailOpenBehavior:
         assert call_args.kwargs['input'] is None
 
     @patch('magpie_ai.monitor.get_client')
-    @patch('magpie_ai.monitor._capture_output', side_effect=Exception("Capture failed"))
+    @patch('tests.test_monitor._capture_output', side_effect=Exception("Capture failed"))
     def test_output_capture_failure_doesnt_crash(self, mock_capture, mock_get_client):
         """Test that output capture failures don't crash."""
         mock_client = Mock()
