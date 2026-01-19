@@ -1,5 +1,5 @@
 """
-HTTP client for communicating with Triton backend.
+HTTP client for communicating with Magpie backend.
 
 Handles async POST requests to log execution data.
 """
@@ -13,8 +13,8 @@ from magpie_ai.config import get_config
 from magpie_ai.validation import validate_metadata, sanitize_metadata
 
 
-class TritonClient:
-    """Client for Triton backend API."""
+class MagpieClient:
+    """Client for Magpie backend API."""
 
     def __init__(self):
         self.config = get_config()
