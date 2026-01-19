@@ -49,8 +49,7 @@ class TestThreadLocalStorage:
 
     def test_set_and_get_context_metadata(self):
         """Test setting and getting context metadata."""
-        ctx = ContextMetadata(project_id="test-project",
-                              metadata={"key": "value"})
+        ctx = ContextMetadata(project_id="test-project", metadata={"key": "value"})
 
         set_context_metadata(ctx)
         retrieved = get_context_metadata()
@@ -68,8 +67,7 @@ class TestThreadLocalStorage:
 
         def thread_func(thread_id):
             # Set different context in each thread
-            ctx = ContextMetadata(
-                project_id=f"project-{thread_id}", metadata={"thread": thread_id})
+            ctx = ContextMetadata(project_id=f"project-{thread_id}", metadata={"thread": thread_id})
             set_context_metadata(ctx)
 
             # Small delay to encourage concurrency
@@ -121,16 +119,14 @@ class TestMergeMetadata:
         result = merge_metadata(
             {"model": "gpt-4", "temperature": 0.7}, {"user_id": "123", "session": "abc"}
         )
-        assert result == {"model": "gpt-4", "temperature": 0.7,
-                          "user_id": "123", "session": "abc"}
+        assert result == {"model": "gpt-4", "temperature": 0.7, "user_id": "123", "session": "abc"}
 
     def test_merge_context_overrides_decorator(self):
         """Test that context metadata overrides decorator metadata."""
         result = merge_metadata(
             {"model": "gpt-4", "temperature": 0.7}, {"temperature": 0.9, "user_id": "123"}
         )
-        assert result == {"model": "gpt-4", "temperature": 0.9,
-                          "user_id": "123"}  # Context value
+        assert result == {"model": "gpt-4", "temperature": 0.9, "user_id": "123"}  # Context value
 
 
 class TestContextManager:
@@ -235,14 +231,12 @@ class TestContextManager:
                 # Inner context active
                 inner_ctx = get_context_metadata()
                 assert inner_ctx.project_id == "inner-project"
-                assert inner_ctx.metadata == {
-                    "level": "inner", "shared": "inner-value"}
+                assert inner_ctx.metadata == {"level": "inner", "shared": "inner-value"}
 
             # Back to outer context
             restored_ctx = get_context_metadata()
             assert restored_ctx.project_id == "outer-project"
-            assert restored_ctx.metadata == {
-                "level": "outer", "shared": "outer-value"}
+            assert restored_ctx.metadata == {"level": "outer", "shared": "outer-value"}
 
         # Outside all contexts
         assert get_context_metadata() is None

@@ -167,8 +167,7 @@ Return ONLY the JSON:"""
 
             # Parse response
             response_text = (
-                api_result.get("choices", [{}])[0].get(
-                    "message", {}).get("content", "{}")
+                api_result.get("choices", [{}])[0].get("message", {}).get("content", "{}")
             )
 
             # Clean up response - remove markdown code blocks
@@ -240,8 +239,7 @@ Return ONLY the JSON:"""
             # Block if requested and severe violations found
             if block_on_violation and not is_safe:
                 has_blocking = any(
-                    v.severity in (ModerationSeverity.CRITICAL,
-                                   ModerationSeverity.HIGH)
+                    v.severity in (ModerationSeverity.CRITICAL, ModerationSeverity.HIGH)
                     or v.action == ModerationAction.BLOCK
                     for v in violations
                 )
@@ -321,6 +319,5 @@ def get_moderator(
     """Get or create content moderator for a project."""
     key = f"{project_id}:{llm_url}:{model}"
     if key not in _moderators:
-        _moderators[key] = ContentModerator(
-            project_id=project_id, llm_url=llm_url, model=model)
+        _moderators[key] = ContentModerator(project_id=project_id, llm_url=llm_url, model=model)
     return _moderators[key]

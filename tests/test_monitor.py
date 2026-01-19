@@ -73,8 +73,7 @@ class TestMonitorDecorator:
 
         # Verify metadata was passed
         call_args = mock_client.send_log_sync.call_args
-        assert call_args.kwargs["metadata"] == {
-            "model": "gpt-4", "temperature": 0.7}
+        assert call_args.kwargs["metadata"] == {"model": "gpt-4", "temperature": 0.7}
         assert call_args.kwargs["project_id"] == "test-project"
 
     @patch("magpie_ai.monitor.get_client")
@@ -273,8 +272,7 @@ class TestInputCapture:
         def test_func(a, b, c):
             pass
 
-        input_data = _capture_input(
-            test_func, ("string", 123, NonSerializable()), {})
+        input_data = _capture_input(test_func, ("string", 123, NonSerializable()), {})
 
         assert input_data["a"] == "string"
         assert input_data["b"] == 123
