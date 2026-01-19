@@ -3,6 +3,7 @@ HTTP client for communicating with Magpie backend.
 
 Handles async POST requests to log execution data.
 """
+
 import httpx
 import asyncio
 from typing import Dict, Any, Optional
@@ -30,7 +31,7 @@ class MagpieClient:
         status: Optional[str] = None,
         error_message: Optional[str] = None,
         function_name: Optional[str] = None,
-        trace_id: Optional[str] = None
+        trace_id: Optional[str] = None,
     ) -> bool:
         """
         Send execution log to backend.
@@ -47,7 +48,8 @@ class MagpieClient:
         if not self.config.is_configured():
             if not self.config.fail_open:
                 raise RuntimeError(
-                    "Magpie SDK not configured. Set MAGPIE_API_KEY and MAGPIE_BACKEND_URL.")
+                    "Magpie SDK not configured. Set MAGPIE_API_KEY and MAGPIE_BACKEND_URL."
+                )
             return False
 
         try:
@@ -62,7 +64,7 @@ class MagpieClient:
                     metadata=metadata,
                     project_id=project_id,
                     backend_url=self.config.backend_url,
-                    api_key=self.config.api_key
+                    api_key=self.config.api_key,
                 )
 
             # Prepare payload
@@ -76,7 +78,7 @@ class MagpieClient:
                 "status": status,
                 "error_message": error_message,
                 "function_name": function_name,
-                "trace_id": trace_id
+                "trace_id": trace_id,
             }
 
             # Include validation result if available
@@ -94,7 +96,7 @@ class MagpieClient:
                     # Note: trailing slash required by FastAPI
                     f"{self.config.backend_url}/api/v1/logs/",
                     json=payload,
-                    headers={"Authorization": f"Bearer {self.config.api_key}"}
+                    headers={"Authorization": f"Bearer {self.config.api_key}"},
                 )
 
                 response.raise_for_status()
@@ -136,31 +138,32 @@ class MagpieClient:
         if not self.config.is_configured():
             if not self.config.fail_open:
                 raise RuntimeError(
-                    "Magpie SDK not configured. Set MAGPIE_API_KEY and MAGPIE_BACKEND_URL.")
+                    "Magpie SDK not configured. Set MAGPIE_API_KEY and MAGPIE_BACKEND_URL."
+                )
             return None
 
         try:
             # Extract parameters
-            project_id = kwargs.get('project_id')
-            input_text = kwargs.get('input')
-            output_text = kwargs.get('output')
-            custom = kwargs.get('custom')
-            started_at = kwargs.get('started_at')
-            completed_at = kwargs.get('completed_at')
-            total_latency_ms = kwargs.get('total_latency_ms')
-            status = kwargs.get('status')
-            error_message = kwargs.get('error_message')
-            function_name = kwargs.get('function_name')
-            trace_id = kwargs.get('trace_id')
+            project_id = kwargs.get("project_id")
+            input_text = kwargs.get("input")
+            output_text = kwargs.get("output")
+            custom = kwargs.get("custom")
+            started_at = kwargs.get("started_at")
+            completed_at = kwargs.get("completed_at")
+            total_latency_ms = kwargs.get("total_latency_ms")
+            status = kwargs.get("status")
+            error_message = kwargs.get("error_message")
+            function_name = kwargs.get("function_name")
+            trace_id = kwargs.get("trace_id")
 
             # New metrics parameters
-            input_tokens = kwargs.get('input_tokens')
-            output_tokens = kwargs.get('output_tokens')
-            context_utilization = kwargs.get('context_utilization', 0.0)
-            input_cost = kwargs.get('input_cost', 0.0)
-            output_cost = kwargs.get('output_cost', 0.0)
-            pii_info = kwargs.get('pii_info')
-            moderation_info = kwargs.get('moderation_info')
+            input_tokens = kwargs.get("input_tokens")
+            output_tokens = kwargs.get("output_tokens")
+            context_utilization = kwargs.get("context_utilization", 0.0)
+            input_cost = kwargs.get("input_cost", 0.0)
+            output_cost = kwargs.get("output_cost", 0.0)
+            pii_info = kwargs.get("pii_info")
+            moderation_info = kwargs.get("moderation_info")
 
             # Calculate total_tokens if we have both
             total_tokens = None
@@ -191,7 +194,7 @@ class MagpieClient:
                 "output_cost": output_cost,
                 "total_cost": total_cost,
                 "pii_detection": pii_info,
-                "content_moderation": moderation_info
+                "content_moderation": moderation_info,
             }
 
             # Remove None values

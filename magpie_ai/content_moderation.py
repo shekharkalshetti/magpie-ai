@@ -16,23 +16,26 @@ from magpie_ai.prompt import PromptCache, get_system_prompt_or_default
 
 class ModerationSeverity(Enum):
     """Severity levels for content moderation."""
+
     CRITICAL = "critical"  # Block immediately
-    HIGH = "high"          # Should be blocked
-    MEDIUM = "medium"      # Flag for review
-    LOW = "low"            # Warning only
+    HIGH = "high"  # Should be blocked
+    MEDIUM = "medium"  # Flag for review
+    LOW = "low"  # Warning only
 
 
 class ModerationAction(Enum):
     """Recommended actions for detected violations."""
-    BLOCK = "block"       # Prevent execution
-    FLAG = "flag"         # Allow but flag for review
-    WARN = "warn"         # Allow with warning
-    ALLOW = "allow"       # No issues detected
+
+    BLOCK = "block"  # Prevent execution
+    FLAG = "flag"  # Allow but flag for review
+    WARN = "warn"  # Allow with warning
+    ALLOW = "allow"  # No issues detected
 
 
 @dataclass
 class ModerationViolation:
     """Represents a single content moderation violation."""
+
     category: str
     severity: ModerationSeverity
     description: str
@@ -42,6 +45,7 @@ class ModerationViolation:
 @dataclass
 class ModerationResult:
     """Result of content moderation analysis."""
+
     is_safe: bool
     action: ModerationAction
     violations: List[ModerationViolation]
@@ -58,11 +62,11 @@ class ModerationResult:
                     "category": v.category,
                     "severity": v.severity.value,
                     "description": v.description,
-                    "action": v.action.value
+                    "action": v.action.value,
                 }
                 for v in self.violations
             ],
-            "error": self.error
+            "error": self.error,
         }
 
 
@@ -85,7 +89,7 @@ class ContentModerator:
         self,
         project_id: str,
         llm_url: str = "http://localhost:1234",
-        model: str = "qwen2.5-1.5b-instruct"
+        model: str = "qwen2.5-1.5b-instruct",
     ):
         """
         Initialize content moderator.
@@ -117,11 +121,7 @@ If violations found:
 
 Return ONLY the JSON:"""
 
-    def moderate(
-        self,
-        content: str,
-        block_on_violation: bool = True
-    ) -> ModerationResult:
+    def moderate(self, content: str, block_on_violation: bool = True) -> ModerationResult:
         """
         Analyze content for policy violations.
 
@@ -136,11 +136,7 @@ Return ONLY the JSON:"""
             ContentModerationError: If block_on_violation=True and critical/high violations found
         """
         if not content or not isinstance(content, str):
-            return ModerationResult(
-                is_safe=True,
-                action=ModerationAction.ALLOW,
-                violations=[]
-            )
+            return ModerationResult(is_safe=True, action=ModerationAction.ALLOW, violations=[])
 
         try:
             # Get system prompt from cached policy file
@@ -157,22 +153,23 @@ Return ONLY the JSON:"""
                     "model": self.model,
                     "messages": [
                         {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt}
+                        {"role": "user", "content": user_prompt},
                     ],
                     "temperature": 0,
                     "max_tokens": 500,
-                    "stream": False
+                    "stream": False,
                 },
-                timeout=30
+                timeout=30,
             )
 
             response.raise_for_status()
             api_result = response.json()
 
             # Parse response
-            response_text = api_result.get("choices", [{}])[0].get(
-                "message", {}
-            ).get("content", "{}")
+            response_text = (
+                api_result.get("choices", [{}])[0].get(
+                    "message", {}).get("content", "{}")
+            )
 
             # Clean up response - remove markdown code blocks
             response_text = response_text.strip()
@@ -193,32 +190,43 @@ Return ONLY the JSON:"""
                     action=ModerationAction.ALLOW,
                     violations=[],
                     raw_response=response_text[:200],
-                    error="Failed to parse moderation response"
+                    error="Failed to parse moderation response",
                 )
 
             # Build result
             is_safe = parsed.get("is_safe", True)
             action_str = parsed.get("action", "allow").lower()
-            action = ModerationAction(action_str) if action_str in [
-                a.value for a in ModerationAction] else ModerationAction.ALLOW
+            action = (
+                ModerationAction(action_str)
+                if action_str in [a.value for a in ModerationAction]
+                else ModerationAction.ALLOW
+            )
 
             violations = []
             for v in parsed.get("violations", []):
                 try:
                     severity_str = v.get("severity", "low").lower()
-                    severity = ModerationSeverity(severity_str) if severity_str in [
-                        s.value for s in ModerationSeverity] else ModerationSeverity.LOW
+                    severity = (
+                        ModerationSeverity(severity_str)
+                        if severity_str in [s.value for s in ModerationSeverity]
+                        else ModerationSeverity.LOW
+                    )
 
                     action_v_str = v.get("action", "warn").lower()
-                    action_v = ModerationAction(action_v_str) if action_v_str in [
-                        a.value for a in ModerationAction] else ModerationAction.WARN
+                    action_v = (
+                        ModerationAction(action_v_str)
+                        if action_v_str in [a.value for a in ModerationAction]
+                        else ModerationAction.WARN
+                    )
 
-                    violations.append(ModerationViolation(
-                        category=v.get("category", "unknown"),
-                        severity=severity,
-                        description=v.get("description", ""),
-                        action=action_v
-                    ))
+                    violations.append(
+                        ModerationViolation(
+                            category=v.get("category", "unknown"),
+                            severity=severity,
+                            description=v.get("description", ""),
+                            action=action_v,
+                        )
+                    )
                 except (KeyError, ValueError):
                     continue
 
@@ -226,7 +234,7 @@ Return ONLY the JSON:"""
                 is_safe=is_safe,
                 action=action,
                 violations=violations,
-                raw_response=response_text[:200]
+                raw_response=response_text[:200],
             )
 
             # Block if requested and severe violations found
@@ -240,8 +248,7 @@ Return ONLY the JSON:"""
                 if has_blocking or action == ModerationAction.BLOCK:
                     categories = ", ".join(v.category for v in violations[:3])
                     raise ContentModerationError(
-                        f"Content blocked by moderation policy. Violations: {categories}",
-                        result
+                        f"Content blocked by moderation policy. Violations: {categories}", result
                     )
 
             return result
@@ -254,7 +261,7 @@ Return ONLY the JSON:"""
                 is_safe=True,
                 action=ModerationAction.ALLOW,
                 violations=[],
-                error=f"LM Studio connection failed: {str(e)}"
+                error=f"LM Studio connection failed: {str(e)}",
             )
         except Exception as e:
             # Fail open for other errors
@@ -262,13 +269,11 @@ Return ONLY the JSON:"""
                 is_safe=True,
                 action=ModerationAction.ALLOW,
                 violations=[],
-                error=f"Content moderation failed: {str(e)}"
+                error=f"Content moderation failed: {str(e)}",
             )
 
     def process_input(
-        self,
-        input_data: Any,
-        block_on_violation: bool = True
+        self, input_data: Any, block_on_violation: bool = True
     ) -> tuple[Any, Optional[Dict[str, Any]]]:
         """
         Process input data for content moderation.
@@ -288,11 +293,11 @@ Return ONLY the JSON:"""
             text = input_data
         elif isinstance(input_data, dict):
             text = (
-                input_data.get("prompt") or
-                input_data.get("message") or
-                input_data.get("text") or
-                input_data.get("content") or
-                json.dumps(input_data)
+                input_data.get("prompt")
+                or input_data.get("message")
+                or input_data.get("text")
+                or input_data.get("content")
+                or json.dumps(input_data)
             )
         elif isinstance(input_data, (list, tuple)):
             text = " ".join(str(item) for item in input_data)
@@ -311,16 +316,11 @@ _moderators: Dict[str, ContentModerator] = {}
 
 
 def get_moderator(
-    project_id: str,
-    llm_url: str = "http://localhost:1234",
-    model: str = "qwen2.5-1.5b-instruct"
+    project_id: str, llm_url: str = "http://localhost:1234", model: str = "qwen2.5-1.5b-instruct"
 ) -> ContentModerator:
     """Get or create content moderator for a project."""
     key = f"{project_id}:{llm_url}:{model}"
     if key not in _moderators:
         _moderators[key] = ContentModerator(
-            project_id=project_id,
-            llm_url=llm_url,
-            model=model
-        )
+            project_id=project_id, llm_url=llm_url, model=model)
     return _moderators[key]

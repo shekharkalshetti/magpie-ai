@@ -8,7 +8,9 @@ from typing import Optional, Dict, Any, Tuple
 import json
 
 
-def extract_tokens_from_response(response: Any, input_text: Optional[str] = None) -> Tuple[Optional[int], Optional[int]]:
+def extract_tokens_from_response(
+    response: Any, input_text: Optional[str] = None
+) -> Tuple[Optional[int], Optional[int]]:
     """
     Extract input and output tokens from LLM response.
 
@@ -32,8 +34,7 @@ def extract_tokens_from_response(response: Any, input_text: Optional[str] = None
     if isinstance(response, str):
         output_tokens = estimate_tokens_from_text(response)
         # If we have input text, estimate input tokens too
-        input_tokens = estimate_tokens_from_text(
-            input_text) if input_text else None
+        input_tokens = estimate_tokens_from_text(input_text) if input_text else None
         return input_tokens, output_tokens
 
     # Try to extract from common attributes
@@ -45,8 +46,7 @@ def extract_tokens_from_response(response: Any, input_text: Optional[str] = None
     output_text = extract_text_from_response(response)
     if output_text:
         output_tokens = estimate_tokens_from_text(output_text)
-        input_tokens = estimate_tokens_from_text(
-            input_text) if input_text else None
+        input_tokens = estimate_tokens_from_text(input_text) if input_text else None
         return input_tokens, output_tokens
 
     return None, None
@@ -56,38 +56,38 @@ def _try_extract_usage(response: Any) -> Tuple[Optional[int], Optional[int]]:
     """Try to extract usage from response object."""
 
     # OpenAI format: response.usage.prompt_tokens, response.usage.completion_tokens
-    if hasattr(response, 'usage'):
+    if hasattr(response, "usage"):
         usage = response.usage
-        if hasattr(usage, 'prompt_tokens') and hasattr(usage, 'completion_tokens'):
+        if hasattr(usage, "prompt_tokens") and hasattr(usage, "completion_tokens"):
             return usage.prompt_tokens, usage.completion_tokens
         # Also try alternative names
-        if hasattr(usage, 'input_tokens') and hasattr(usage, 'output_tokens'):
+        if hasattr(usage, "input_tokens") and hasattr(usage, "output_tokens"):
             return usage.input_tokens, usage.output_tokens
 
     # Anthropic format: response.usage.input_tokens, response.usage.output_tokens
-    if hasattr(response, 'usage'):
+    if hasattr(response, "usage"):
         usage = response.usage
         if isinstance(usage, dict):
-            if 'input_tokens' in usage and 'output_tokens' in usage:
-                return usage['input_tokens'], usage['output_tokens']
-            if 'prompt_tokens' in usage and 'completion_tokens' in usage:
-                return usage['prompt_tokens'], usage['completion_tokens']
+            if "input_tokens" in usage and "output_tokens" in usage:
+                return usage["input_tokens"], usage["output_tokens"]
+            if "prompt_tokens" in usage and "completion_tokens" in usage:
+                return usage["prompt_tokens"], usage["completion_tokens"]
 
     # Dictionary format
     if isinstance(response, dict):
-        if 'usage' in response:
-            usage = response['usage']
+        if "usage" in response:
+            usage = response["usage"]
             if isinstance(usage, dict):
                 # Try various naming conventions
                 input_key = None
                 output_key = None
 
-                for inp in ['input_tokens', 'prompt_tokens', 'input']:
+                for inp in ["input_tokens", "prompt_tokens", "input"]:
                     if inp in usage:
                         input_key = inp
                         break
 
-                for out in ['output_tokens', 'completion_tokens', 'output']:
+                for out in ["output_tokens", "completion_tokens", "output"]:
                     if out in usage:
                         output_key = out
                         break
@@ -123,42 +123,42 @@ def extract_text_from_response(response: Any) -> Optional[str]:
         return response
 
     # OpenAI ChatCompletion
-    if hasattr(response, 'choices') and len(response.choices) > 0:
+    if hasattr(response, "choices") and len(response.choices) > 0:
         choice = response.choices[0]
         # Try message.content (ChatCompletion)
-        if hasattr(choice, 'message') and hasattr(choice.message, 'content'):
+        if hasattr(choice, "message") and hasattr(choice.message, "content"):
             return choice.message.content
         # Try text (Completion)
-        if hasattr(choice, 'text'):
+        if hasattr(choice, "text"):
             return choice.text
 
     # Anthropic
-    if hasattr(response, 'content'):
+    if hasattr(response, "content"):
         content = response.content
         if isinstance(content, list) and len(content) > 0:
             # Try first block
             first = content[0]
-            if hasattr(first, 'text'):
+            if hasattr(first, "text"):
                 return first.text
-            if isinstance(first, dict) and 'text' in first:
-                return first['text']
+            if isinstance(first, dict) and "text" in first:
+                return first["text"]
 
     # Dictionary format
     if isinstance(response, dict):
         # OpenAI style
-        if 'choices' in response and len(response['choices']) > 0:
-            choice = response['choices'][0]
-            if 'message' in choice and 'content' in choice['message']:
-                return choice['message']['content']
-            if 'text' in choice:
-                return choice['text']
+        if "choices" in response and len(response["choices"]) > 0:
+            choice = response["choices"][0]
+            if "message" in choice and "content" in choice["message"]:
+                return choice["message"]["content"]
+            if "text" in choice:
+                return choice["text"]
 
         # Anthropic style
-        if 'content' in response and isinstance(response['content'], list):
-            if len(response['content']) > 0:
-                first = response['content'][0]
-                if isinstance(first, dict) and 'text' in first:
-                    return first['text']
+        if "content" in response and isinstance(response["content"], list):
+            if len(response["content"]) > 0:
+                first = response["content"][0]
+                if isinstance(first, dict) and "text" in first:
+                    return first["text"]
 
     return None
 
@@ -177,12 +177,12 @@ def extract_model_from_response(response: Any) -> Optional[str]:
         return None
 
     # Check for direct model attribute
-    if hasattr(response, 'model'):
+    if hasattr(response, "model"):
         return response.model
 
     # Dictionary format
-    if isinstance(response, dict) and 'model' in response:
-        return response['model']
+    if isinstance(response, dict) and "model" in response:
+        return response["model"]
 
     return None
 

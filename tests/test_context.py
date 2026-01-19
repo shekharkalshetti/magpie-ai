@@ -3,6 +3,7 @@ Tests for the context manager.
 
 Tests thread-local storage, metadata merging, and integration with decorator.
 """
+
 import pytest
 from unittest.mock import Mock, patch
 import threading
@@ -13,7 +14,7 @@ from magpie_ai.context import (
     get_context_metadata,
     set_context_metadata,
     merge_metadata,
-    ContextMetadata
+    ContextMetadata,
 )
 
 
@@ -30,9 +31,7 @@ class TestContextMetadata:
     def test_initialization_with_values(self):
         """Test initialization with values."""
         ctx = ContextMetadata(
-            project_id="test-project",
-            metadata={"key": "value"},
-            trace_id="trace-123"
+            project_id="test-project", metadata={"key": "value"}, trace_id="trace-123"
         )
         assert ctx.project_id == "test-project"
         assert ctx.metadata == {"key": "value"}
@@ -50,10 +49,8 @@ class TestThreadLocalStorage:
 
     def test_set_and_get_context_metadata(self):
         """Test setting and getting context metadata."""
-        ctx = ContextMetadata(
-            project_id="test-project",
-            metadata={"key": "value"}
-        )
+        ctx = ContextMetadata(project_id="test-project",
+                              metadata={"key": "value"})
 
         set_context_metadata(ctx)
         retrieved = get_context_metadata()
@@ -72,9 +69,7 @@ class TestThreadLocalStorage:
         def thread_func(thread_id):
             # Set different context in each thread
             ctx = ContextMetadata(
-                project_id=f"project-{thread_id}",
-                metadata={"thread": thread_id}
-            )
+                project_id=f"project-{thread_id}", metadata={"thread": thread_id})
             set_context_metadata(ctx)
 
             # Small delay to encourage concurrency
@@ -84,7 +79,7 @@ class TestThreadLocalStorage:
             retrieved = get_context_metadata()
             results[thread_id] = {
                 "project_id": retrieved.project_id,
-                "metadata": retrieved.metadata
+                "metadata": retrieved.metadata,
             }
 
         # Run multiple threads
@@ -124,51 +119,39 @@ class TestMergeMetadata:
     def test_merge_both_no_overlap(self):
         """Test merging with no overlapping keys."""
         result = merge_metadata(
-            {"model": "gpt-4", "temperature": 0.7},
-            {"user_id": "123", "session": "abc"}
+            {"model": "gpt-4", "temperature": 0.7}, {"user_id": "123", "session": "abc"}
         )
-        assert result == {
-            "model": "gpt-4",
-            "temperature": 0.7,
-            "user_id": "123",
-            "session": "abc"
-        }
+        assert result == {"model": "gpt-4", "temperature": 0.7,
+                          "user_id": "123", "session": "abc"}
 
     def test_merge_context_overrides_decorator(self):
         """Test that context metadata overrides decorator metadata."""
         result = merge_metadata(
-            {"model": "gpt-4", "temperature": 0.7},
-            {"temperature": 0.9, "user_id": "123"}
+            {"model": "gpt-4", "temperature": 0.7}, {"temperature": 0.9, "user_id": "123"}
         )
-        assert result == {
-            "model": "gpt-4",
-            "temperature": 0.9,  # Context value
-            "user_id": "123"
-        }
+        assert result == {"model": "gpt-4", "temperature": 0.9,
+                          "user_id": "123"}  # Context value
 
 
 class TestContextManager:
     """Test the context manager."""
 
-    @patch('magpie_ai.context.get_client')
+    @patch("magpie_ai.context.get_client")
     def test_basic_context(self, mock_get_client):
         """Test basic context manager usage."""
         mock_client = Mock()
         mock_get_client.return_value = mock_client
 
-        with context(
-            project_id="test-project",
-            metadata={"key": "value"}
-        ):
+        with context(project_id="test-project", metadata={"key": "value"}):
             pass
 
         # Should have logged the context
         assert mock_client.send_log_sync.called
         call_args = mock_client.send_log_sync.call_args
-        assert call_args.kwargs['project_id'] == "test-project"
-        assert call_args.kwargs['metadata'] == {"key": "value"}
+        assert call_args.kwargs["project_id"] == "test-project"
+        assert call_args.kwargs["metadata"] == {"key": "value"}
 
-    @patch('magpie_ai.context.get_client')
+    @patch("magpie_ai.context.get_client")
     def test_context_stores_metadata(self, mock_get_client):
         """Test that context stores metadata in thread-local storage."""
         mock_client = Mock()
@@ -177,11 +160,7 @@ class TestContextManager:
         # Clear any previous context
         set_context_metadata(None)
 
-        with context(
-            project_id="test-project",
-            metadata={"key": "value"},
-            trace_id="trace-123"
-        ):
+        with context(project_id="test-project", metadata={"key": "value"}, trace_id="trace-123"):
             # Inside context, metadata should be available
             ctx_meta = get_context_metadata()
             assert ctx_meta is not None
@@ -193,7 +172,7 @@ class TestContextManager:
         ctx_meta = get_context_metadata()
         assert ctx_meta is None
 
-    @patch('magpie_ai.context.get_client')
+    @patch("magpie_ai.context.get_client")
     def test_context_without_project_id(self, mock_get_client):
         """Test context without project_id (no logging)."""
         mock_client = Mock()
@@ -208,17 +187,13 @@ class TestContextManager:
         # But context execution should not be logged
         assert not mock_client.send_log_sync.called
 
-    @patch('magpie_ai.context.get_client')
+    @patch("magpie_ai.context.get_client")
     def test_context_log_context_false(self, mock_get_client):
         """Test disabling context execution logging."""
         mock_client = Mock()
         mock_get_client.return_value = mock_client
 
-        with context(
-            project_id="test-project",
-            metadata={"key": "value"},
-            log_context=False
-        ):
+        with context(project_id="test-project", metadata={"key": "value"}, log_context=False):
             # Metadata should be stored
             ctx_meta = get_context_metadata()
             assert ctx_meta is not None
@@ -226,7 +201,7 @@ class TestContextManager:
         # But no log should be sent
         assert not mock_client.send_log_sync.called
 
-    @patch('magpie_ai.context.get_client')
+    @patch("magpie_ai.context.get_client")
     def test_context_with_error(self, mock_get_client):
         """Test context when code raises exception."""
         mock_client = Mock()
@@ -238,26 +213,24 @@ class TestContextManager:
 
         # Should have logged with error status
         call_args = mock_client.send_log_sync.call_args
-        assert call_args.kwargs['status'] == "error"
-        assert call_args.kwargs['error_message'] == "test error"
+        assert call_args.kwargs["status"] == "error"
+        assert call_args.kwargs["error_message"] == "test error"
 
-    @patch('magpie_ai.context.get_client')
+    @patch("magpie_ai.context.get_client")
     def test_nested_contexts(self, mock_get_client):
         """Test nested context managers."""
         mock_client = Mock()
         mock_get_client.return_value = mock_client
 
         with context(
-            project_id="outer-project",
-            metadata={"level": "outer", "shared": "outer-value"}
+            project_id="outer-project", metadata={"level": "outer", "shared": "outer-value"}
         ):
             # Inner context should override outer
             outer_ctx = get_context_metadata()
             assert outer_ctx.project_id == "outer-project"
 
             with context(
-                project_id="inner-project",
-                metadata={"level": "inner", "shared": "inner-value"}
+                project_id="inner-project", metadata={"level": "inner", "shared": "inner-value"}
             ):
                 # Inner context active
                 inner_ctx = get_context_metadata()
@@ -274,7 +247,7 @@ class TestContextManager:
         # Outside all contexts
         assert get_context_metadata() is None
 
-    @patch('magpie_ai.context.get_client')
+    @patch("magpie_ai.context.get_client")
     def test_context_timing(self, mock_get_client):
         """Test that context captures timing."""
         mock_client = Mock()
@@ -284,27 +257,24 @@ class TestContextManager:
             time.sleep(0.1)  # 100ms
 
         call_args = mock_client.send_log_sync.call_args
-        duration_ms = call_args.kwargs['duration_ms']
+        duration_ms = call_args.kwargs["duration_ms"]
         assert duration_ms >= 100
         assert duration_ms < 200
 
-    @patch('magpie_ai.context.get_client')
+    @patch("magpie_ai.context.get_client")
     def test_context_trace_id(self, mock_get_client):
         """Test custom trace ID."""
         mock_client = Mock()
         mock_get_client.return_value = mock_client
 
-        with context(
-            project_id="test-project",
-            trace_id="custom-trace-123"
-        ):
+        with context(project_id="test-project", trace_id="custom-trace-123"):
             ctx_meta = get_context_metadata()
             assert ctx_meta.trace_id == "custom-trace-123"
 
         call_args = mock_client.send_log_sync.call_args
-        assert call_args.kwargs['trace_id'] == "custom-trace-123"
+        assert call_args.kwargs["trace_id"] == "custom-trace-123"
 
-    @patch('magpie_ai.context.get_client')
+    @patch("magpie_ai.context.get_client")
     def test_context_auto_trace_id(self, mock_get_client):
         """Test automatic trace ID generation."""
         mock_client = Mock()
@@ -314,7 +284,7 @@ class TestContextManager:
             pass
 
         call_args = mock_client.send_log_sync.call_args
-        trace_id = call_args.kwargs['trace_id']
+        trace_id = call_args.kwargs["trace_id"]
         assert trace_id is not None
         assert len(trace_id) > 0
 
@@ -322,23 +292,21 @@ class TestContextManager:
 class TestFailOpenBehavior:
     """Test fail-open behavior."""
 
-    @patch('magpie_ai.context.get_client')
+    @patch("magpie_ai.context.get_client")
     def test_metadata_sanitization_failure(self, mock_get_client):
         """Test that metadata sanitization failures don't crash."""
         mock_client = Mock()
         mock_get_client.return_value = mock_client
 
         # This should not crash even if sanitization fails
-        with context(
-            project_id="test-project",
-            metadata={"key": "value"}  # Normal metadata
-        ):
+        # Normal metadata
+        with context(project_id="test-project", metadata={"key": "value"}):
             pass
 
         # Should still work
         assert mock_client.send_log_sync.called
 
-    @patch('magpie_ai.context.get_client')
+    @patch("magpie_ai.context.get_client")
     def test_logging_failure_doesnt_crash(self, mock_get_client):
         """Test that logging failures don't crash."""
         mock_client = Mock()
@@ -355,7 +323,7 @@ class TestFailOpenBehavior:
 class TestThreadSafety:
     """Test thread safety of context manager."""
 
-    @patch('magpie_ai.context.get_client')
+    @patch("magpie_ai.context.get_client")
     def test_concurrent_contexts(self, mock_get_client):
         """Test multiple concurrent contexts."""
         mock_client = Mock()
@@ -364,17 +332,16 @@ class TestThreadSafety:
         results = []
 
         def thread_func(thread_id):
-            with context(
-                project_id=f"project-{thread_id}",
-                metadata={"thread": thread_id}
-            ):
+            with context(project_id=f"project-{thread_id}", metadata={"thread": thread_id}):
                 time.sleep(0.01)
                 ctx_meta = get_context_metadata()
-                results.append({
-                    "thread": thread_id,
-                    "project_id": ctx_meta.project_id,
-                    "metadata": ctx_meta.metadata
-                })
+                results.append(
+                    {
+                        "thread": thread_id,
+                        "project_id": ctx_meta.project_id,
+                        "metadata": ctx_meta.metadata,
+                    }
+                )
 
         threads = []
         for i in range(10):
@@ -398,7 +365,7 @@ class TestThreadSafety:
 class TestIntegrationWithDecorator:
     """Test integration with @monitor() decorator."""
 
-    @patch('magpie_ai.monitor.get_client')
+    @patch("magpie_ai.monitor.get_client")
     @pytest.mark.skip(reason="metadata parameter not supported in current API")
     def test_decorator_uses_context_metadata(self, mock_get_client):
         """Test that decorator picks up context metadata."""
@@ -418,11 +385,11 @@ class TestIntegrationWithDecorator:
 
         # Verify both decorator and context metadata were used
         call_args = mock_client.send_log_sync.call_args
-        metadata = call_args.kwargs['metadata']
+        metadata = call_args.kwargs["metadata"]
         assert "model" in metadata  # From decorator
         assert "user_id" in metadata  # From context
 
-    @patch('magpie_ai.monitor.get_client')
+    @patch("magpie_ai.monitor.get_client")
     @pytest.mark.skip(reason="metadata parameter not supported in current API")
     def test_context_metadata_overrides_decorator(self, mock_get_client):
         """Test that context metadata overrides decorator metadata."""
@@ -431,10 +398,7 @@ class TestIntegrationWithDecorator:
         mock_client = Mock()
         mock_get_client.return_value = mock_client
 
-        @monitor(
-            project_id="test-project",
-            metadata={"temperature": 0.7, "model": "gpt-4"}
-        )
+        @monitor(project_id="test-project", metadata={"temperature": 0.7, "model": "gpt-4"})
         def test_function():
             return "result"
 
@@ -442,11 +406,11 @@ class TestIntegrationWithDecorator:
             test_function()
 
         call_args = mock_client.send_log_sync.call_args
-        metadata = call_args.kwargs['metadata']
+        metadata = call_args.kwargs["metadata"]
         assert metadata["temperature"] == 0.9  # Context value
         assert metadata["model"] == "gpt-4"  # Decorator value
 
-    @patch('magpie_ai.monitor.get_client')
+    @patch("magpie_ai.monitor.get_client")
     @pytest.mark.skip(reason="metadata parameter not supported in current API")
     def test_context_provides_project_id(self, mock_get_client):
         """Test that context can provide project_id to decorator."""
@@ -464,9 +428,9 @@ class TestIntegrationWithDecorator:
 
         # Decorator project_id should take precedence
         call_args = mock_client.send_log_sync.call_args
-        assert call_args.kwargs['project_id'] == "decorator-project"
+        assert call_args.kwargs["project_id"] == "decorator-project"
 
-    @patch('magpie_ai.monitor.get_client')
+    @patch("magpie_ai.monitor.get_client")
     def test_context_provides_trace_id(self, mock_get_client):
         """Test that context can provide trace_id to decorator."""
         from magpie_ai.monitor import monitor
@@ -483,4 +447,4 @@ class TestIntegrationWithDecorator:
 
         # Context trace_id should be used
         call_args = mock_client.send_log_sync.call_args
-        assert call_args.kwargs['trace_id'] == "shared-trace-123"
+        assert call_args.kwargs["trace_id"] == "shared-trace-123"

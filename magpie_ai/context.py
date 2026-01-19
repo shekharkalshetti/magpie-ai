@@ -8,7 +8,7 @@ Usage:
     # Standalone - logs the context execution
     with magpie_ai.context(project_id="my-project", metadata={"user_id": "123"}):
         result = llm.call(prompt)
-    
+
     # Combined with decorator - metadata is merged
     with magpie_ai.context(metadata={"user_id": "123"}):
         @magpie_ai.monitor(project_id="my-project", metadata={"model": "gpt-4"})
@@ -16,6 +16,7 @@ Usage:
             pass
         my_function()  # Logs with both context and decorator metadata
 """
+
 import threading
 from contextlib import contextmanager
 from typing import Dict, Any, Optional
@@ -37,7 +38,7 @@ class ContextMetadata:
         self,
         project_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
-        trace_id: Optional[str] = None
+        trace_id: Optional[str] = None,
     ):
         self.project_id = project_id
         self.metadata = metadata or {}
@@ -51,7 +52,7 @@ def get_context_metadata() -> Optional[ContextMetadata]:
     Returns:
         ContextMetadata if a context is active, None otherwise
     """
-    return getattr(_context_storage, 'metadata', None)
+    return getattr(_context_storage, "metadata", None)
 
 
 def set_context_metadata(context_metadata: Optional[ContextMetadata]):
@@ -65,8 +66,7 @@ def set_context_metadata(context_metadata: Optional[ContextMetadata]):
 
 
 def merge_metadata(
-    decorator_metadata: Optional[Dict[str, Any]],
-    context_metadata: Optional[Dict[str, Any]]
+    decorator_metadata: Optional[Dict[str, Any]], context_metadata: Optional[Dict[str, Any]]
 ) -> Dict[str, Any]:
     """
     Merge decorator and context metadata.
@@ -96,7 +96,7 @@ def context(
     project_id: Optional[str] = None,
     metadata: Optional[Dict[str, Any]] = None,
     trace_id: Optional[str] = None,
-    log_context: bool = True
+    log_context: bool = True,
 ):
     """
     Context manager for monitoring code execution.
@@ -145,9 +145,7 @@ def context(
 
     # Create new context metadata
     new_context = ContextMetadata(
-        project_id=project_id,
-        metadata=sanitized_metadata,
-        trace_id=trace_id
+        project_id=project_id, metadata=sanitized_metadata, trace_id=trace_id
     )
 
     # Set in thread-local storage
@@ -179,8 +177,7 @@ def context(
         # Log the context execution if requested
         if log_context and project_id and started_at:
             completed_at = datetime.utcnow()
-            duration_ms = int(
-                (completed_at - started_at).total_seconds() * 1000)
+            duration_ms = int((completed_at - started_at).total_seconds() * 1000)
 
             # Send log in background thread
             try:
@@ -198,7 +195,7 @@ def context(
                             status=status,
                             error_message=error_message,
                             trace_id=execution_trace_id,
-                            function_name="<context>"
+                            function_name="<context>",
                         )
                     except Exception:
                         # Fail open - silently ignore errors

@@ -11,6 +11,7 @@ from dataclasses import dataclass
 @dataclass
 class ModelPricing:
     """Pricing for a specific model."""
+
     input_price_per_1m_tokens: float  # Price per 1 million input tokens
     output_price_per_1m_tokens: float  # Price per 1 million output tokens
     context_window: int  # Maximum tokens in context window
@@ -21,74 +22,45 @@ class ModelPricing:
 MODEL_PRICING: Dict[str, ModelPricing] = {
     # OpenAI - GPT-4 models
     "gpt-4": ModelPricing(
-        input_price_per_1m_tokens=30.0,
-        output_price_per_1m_tokens=60.0,
-        context_window=8192
+        input_price_per_1m_tokens=30.0, output_price_per_1m_tokens=60.0, context_window=8192
     ),
     "gpt-4-turbo": ModelPricing(
-        input_price_per_1m_tokens=10.0,
-        output_price_per_1m_tokens=30.0,
-        context_window=128000
+        input_price_per_1m_tokens=10.0, output_price_per_1m_tokens=30.0, context_window=128000
     ),
     "gpt-4-32k": ModelPricing(
-        input_price_per_1m_tokens=60.0,
-        output_price_per_1m_tokens=120.0,
-        context_window=32768
+        input_price_per_1m_tokens=60.0, output_price_per_1m_tokens=120.0, context_window=32768
     ),
-
     # OpenAI - GPT-3.5 models
     "gpt-3.5-turbo": ModelPricing(
-        input_price_per_1m_tokens=0.5,
-        output_price_per_1m_tokens=1.5,
-        context_window=4096
+        input_price_per_1m_tokens=0.5, output_price_per_1m_tokens=1.5, context_window=4096
     ),
-
     # Anthropic - Claude models
     "claude-3-sonnet": ModelPricing(
-        input_price_per_1m_tokens=3.0,
-        output_price_per_1m_tokens=15.0,
-        context_window=200000
+        input_price_per_1m_tokens=3.0, output_price_per_1m_tokens=15.0, context_window=200000
     ),
     "claude-3-opus": ModelPricing(
-        input_price_per_1m_tokens=15.0,
-        output_price_per_1m_tokens=75.0,
-        context_window=200000
+        input_price_per_1m_tokens=15.0, output_price_per_1m_tokens=75.0, context_window=200000
     ),
     "claude-3-haiku": ModelPricing(
-        input_price_per_1m_tokens=0.25,
-        output_price_per_1m_tokens=1.25,
-        context_window=200000
+        input_price_per_1m_tokens=0.25, output_price_per_1m_tokens=1.25, context_window=200000
     ),
-
     # Anthropic - Claude 2 (legacy)
     "claude-2": ModelPricing(
-        input_price_per_1m_tokens=8.0,
-        output_price_per_1m_tokens=24.0,
-        context_window=100000
+        input_price_per_1m_tokens=8.0, output_price_per_1m_tokens=24.0, context_window=100000
     ),
-
     # Google - Gemini models
     "gemini-pro": ModelPricing(
-        input_price_per_1m_tokens=0.5,
-        output_price_per_1m_tokens=1.0,
-        context_window=32768
+        input_price_per_1m_tokens=0.5, output_price_per_1m_tokens=1.0, context_window=32768
     ),
     "gemini-pro-vision": ModelPricing(
-        input_price_per_1m_tokens=0.5,
-        output_price_per_1m_tokens=1.0,
-        context_window=32768
+        input_price_per_1m_tokens=0.5, output_price_per_1m_tokens=1.0, context_window=32768
     ),
-
     # Meta - Llama (via providers)
     "llama-2-7b": ModelPricing(
-        input_price_per_1m_tokens=0.1,
-        output_price_per_1m_tokens=0.1,
-        context_window=4096
+        input_price_per_1m_tokens=0.1, output_price_per_1m_tokens=0.1, context_window=4096
     ),
     "llama-2-13b": ModelPricing(
-        input_price_per_1m_tokens=0.2,
-        output_price_per_1m_tokens=0.2,
-        context_window=4096
+        input_price_per_1m_tokens=0.2, output_price_per_1m_tokens=0.2, context_window=4096
     ),
 }
 
@@ -111,7 +83,7 @@ def calculate_costs(
     output_tokens: int,
     model: Optional[str] = None,
     input_price_per_1m: Optional[float] = None,
-    output_price_per_1m: Optional[float] = None
+    output_price_per_1m: Optional[float] = None,
 ) -> Tuple[float, float, float]:
     """
     Calculate input, output, and total costs.
@@ -132,8 +104,7 @@ def calculate_costs(
     # Validation: can't have both model and explicit prices
     if model and (input_price_per_1m is not None or output_price_per_1m is not None):
         raise ValueError(
-            "Cannot specify both 'model' and explicit prices. "
-            "Use one or the other."
+            "Cannot specify both 'model' and explicit prices. " "Use one or the other."
         )
 
     # Get pricing from model if provided
@@ -167,7 +138,7 @@ def get_context_utilization(
     input_tokens: int,
     output_tokens: int,
     model: Optional[str] = None,
-    context_window: Optional[int] = None
+    context_window: Optional[int] = None,
 ) -> float:
     """
     Calculate context utilization percentage.

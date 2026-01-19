@@ -3,6 +3,7 @@ Tests for the @monitor() decorator.
 
 Tests input/output capture, timing, error handling, and fail-open behavior.
 """
+
 import pytest
 from unittest.mock import Mock, patch, call
 from datetime import datetime
@@ -10,12 +11,7 @@ import time
 import threading
 import inspect
 
-from magpie_ai.monitor import (
-    monitor,
-    _execute_monitored,
-    _capture_input_as_text,
-    _send_log_async
-)
+from magpie_ai.monitor import monitor, _execute_monitored, _capture_input_as_text, _send_log_async
 
 
 # Compatibility shims for tests using old internal functions
@@ -33,10 +29,10 @@ def _capture_output(output):
         return None
     if isinstance(output, str):
         return output
-    if isinstance(output, dict) and 'choices' in output:
+    if isinstance(output, dict) and "choices" in output:
         # OpenAI-style response
         try:
-            return output['choices'][0]['message']['content']
+            return output["choices"][0]["message"]["content"]
         except (KeyError, IndexError):
             return str(output)
     return str(output)
@@ -45,7 +41,7 @@ def _capture_output(output):
 class TestMonitorDecorator:
     """Test the @monitor() decorator."""
 
-    @patch('magpie_ai.monitor.get_client')
+    @patch("magpie_ai.monitor.get_client")
     def test_basic_decoration(self, mock_get_client):
         """Test basic function decoration and execution."""
         mock_client = Mock()
@@ -60,17 +56,14 @@ class TestMonitorDecorator:
         assert result == 5
         assert mock_client.send_log_sync.called
 
-    @patch('magpie_ai.monitor.get_client')
+    @patch("magpie_ai.monitor.get_client")
     @pytest.mark.skip(reason="metadata parameter not supported in current API")
     def test_decorator_with_metadata(self, mock_get_client):
         """Test decorator with static metadata."""
         mock_client = Mock()
         mock_get_client.return_value = mock_client
 
-        @monitor(
-            project_id="test-project",
-            metadata={"model": "gpt-4", "temperature": 0.7}
-        )
+        @monitor(project_id="test-project", metadata={"model": "gpt-4", "temperature": 0.7})
         def llm_function(prompt):
             return f"Response to: {prompt}"
 
@@ -80,11 +73,11 @@ class TestMonitorDecorator:
 
         # Verify metadata was passed
         call_args = mock_client.send_log_sync.call_args
-        assert call_args.kwargs['metadata'] == {
+        assert call_args.kwargs["metadata"] == {
             "model": "gpt-4", "temperature": 0.7}
-        assert call_args.kwargs['project_id'] == "test-project"
+        assert call_args.kwargs["project_id"] == "test-project"
 
-    @patch('magpie_ai.monitor.get_client')
+    @patch("magpie_ai.monitor.get_client")
     def test_decorator_preserves_function_metadata(self, mock_get_client):
         """Test that decorator preserves function name and docstring."""
         mock_client = Mock()
@@ -98,7 +91,7 @@ class TestMonitorDecorator:
         assert documented_function.__name__ == "documented_function"
         assert documented_function.__doc__ == """This is a docstring."""
 
-    @patch('magpie_ai.monitor.get_client')
+    @patch("magpie_ai.monitor.get_client")
     def test_decorator_with_kwargs(self, mock_get_client):
         """Test decorator with keyword arguments."""
         mock_client = Mock()
@@ -114,7 +107,7 @@ class TestMonitorDecorator:
 
         # Verify input was captured (as text)
         call_args = mock_client.send_log_sync.call_args
-        input_data = call_args.kwargs['input']
+        input_data = call_args.kwargs["input"]
         # Input is captured as text in current implementation
         assert isinstance(input_data, str)
 
@@ -122,7 +115,7 @@ class TestMonitorDecorator:
 class TestExecutionMonitoring:
     """Test execution monitoring behavior."""
 
-    @patch('magpie_ai.monitor.get_client')
+    @patch("magpie_ai.monitor.get_client")
     def test_successful_execution_logging(self, mock_get_client):
         """Test logging of successful execution."""
         mock_client = Mock()
@@ -138,11 +131,11 @@ class TestExecutionMonitoring:
 
         # Verify log was sent
         call_args = mock_client.send_log_sync.call_args
-        assert call_args.kwargs['status'] == "success"
-        assert call_args.kwargs['error_message'] is None
-        assert call_args.kwargs['function_name'] == "successful_function"
+        assert call_args.kwargs["status"] == "success"
+        assert call_args.kwargs["error_message"] is None
+        assert call_args.kwargs["function_name"] == "successful_function"
 
-    @patch('magpie_ai.monitor.get_client')
+    @patch("magpie_ai.monitor.get_client")
     def test_error_execution_logging(self, mock_get_client):
         """Test logging when function raises exception."""
         mock_client = Mock()
@@ -157,10 +150,10 @@ class TestExecutionMonitoring:
 
         # Verify error was logged
         call_args = mock_client.send_log_sync.call_args
-        assert call_args.kwargs['status'] == "error"
-        assert call_args.kwargs['error_message'] == "Something went wrong"
+        assert call_args.kwargs["status"] == "error"
+        assert call_args.kwargs["error_message"] == "Something went wrong"
 
-    @patch('magpie_ai.monitor.get_client')
+    @patch("magpie_ai.monitor.get_client")
     def test_timing_capture(self, mock_get_client):
         """Test that timing is captured correctly."""
         mock_client = Mock()
@@ -175,15 +168,15 @@ class TestExecutionMonitoring:
 
         # Verify timing was captured
         call_args = mock_client.send_log_sync.call_args
-        total_latency_ms = call_args.kwargs['total_latency_ms']
+        total_latency_ms = call_args.kwargs["total_latency_ms"]
         assert total_latency_ms >= 100  # At least 100ms
-        assert total_latency_ms < 200   # But not too long
+        assert total_latency_ms < 200  # But not too long
 
         # Verify timestamps
-        assert isinstance(call_args.kwargs['started_at'], datetime)
-        assert isinstance(call_args.kwargs['completed_at'], datetime)
+        assert isinstance(call_args.kwargs["started_at"], datetime)
+        assert isinstance(call_args.kwargs["completed_at"], datetime)
 
-    @patch('magpie_ai.monitor.get_client')
+    @patch("magpie_ai.monitor.get_client")
     def test_trace_id_generation(self, mock_get_client):
         """Test automatic trace ID generation."""
         mock_client = Mock()
@@ -197,12 +190,12 @@ class TestExecutionMonitoring:
 
         # Verify trace_id was generated
         call_args = mock_client.send_log_sync.call_args
-        trace_id = call_args.kwargs['trace_id']
+        trace_id = call_args.kwargs["trace_id"]
         assert trace_id is not None
         assert isinstance(trace_id, str)
         assert len(trace_id) > 0
 
-    @patch('magpie_ai.monitor.get_client')
+    @patch("magpie_ai.monitor.get_client")
     def test_custom_trace_id(self, mock_get_client):
         """Test using custom trace ID."""
         mock_client = Mock()
@@ -216,7 +209,7 @@ class TestExecutionMonitoring:
 
         # Verify custom trace_id was used
         call_args = mock_client.send_log_sync.call_args
-        assert call_args.kwargs['trace_id'] == "custom-trace-123"
+        assert call_args.kwargs["trace_id"] == "custom-trace-123"
 
 
 class TestInputCapture:
@@ -224,34 +217,38 @@ class TestInputCapture:
 
     def test_capture_simple_args(self):
         """Test capturing simple positional arguments."""
+
         def test_func(a, b, c):
             pass
 
         input_data = _capture_input(test_func, (1, 2, 3), {})
 
-        assert input_data == {'a': 1, 'b': 2, 'c': 3}
+        assert input_data == {"a": 1, "b": 2, "c": 3}
 
     def test_capture_kwargs(self):
         """Test capturing keyword arguments."""
+
         def test_func(a, b=10, c=20):
             pass
 
-        input_data = _capture_input(test_func, (5,), {'b': 15, 'c': 25})
+        input_data = _capture_input(test_func, (5,), {"b": 15, "c": 25})
 
-        assert input_data == {'a': 5, 'b': 15, 'c': 25}
+        assert input_data == {"a": 5, "b": 15, "c": 25}
 
     def test_capture_with_defaults(self):
         """Test capturing with default values applied."""
+
         def test_func(a, b=10, c=20):
             pass
 
         input_data = _capture_input(test_func, (5,), {})
 
-        assert input_data == {'a': 5, 'b': 10, 'c': 20}
+        assert input_data == {"a": 5, "b": 10, "c": 20}
 
     @pytest.mark.skip(reason="Output format changed - now returns object directly")
     def test_capture_non_serializable_objects(self):
         """Test capturing non-JSON-serializable objects."""
+
         class CustomClass:
             def __str__(self):
                 return "CustomClass instance"
@@ -262,13 +259,14 @@ class TestInputCapture:
         custom_obj = CustomClass()
         input_data = _capture_input(test_func, (custom_obj,), {})
 
-        assert 'obj' in input_data
-        assert input_data['obj']['_type'] == 'CustomClass'
-        assert 'CustomClass instance' in input_data['obj']['_repr']
+        assert "obj" in input_data
+        assert input_data["obj"]["_type"] == "CustomClass"
+        assert "CustomClass instance" in input_data["obj"]["_repr"]
 
     @pytest.mark.skip(reason="Output format changed - now returns object directly")
     def test_capture_mixed_serializable(self):
         """Test capturing mix of serializable and non-serializable."""
+
         class NonSerializable:
             pass
 
@@ -276,25 +274,23 @@ class TestInputCapture:
             pass
 
         input_data = _capture_input(
-            test_func,
-            ("string", 123, NonSerializable()),
-            {}
-        )
+            test_func, ("string", 123, NonSerializable()), {})
 
-        assert input_data['a'] == "string"
-        assert input_data['b'] == 123
-        assert '_type' in input_data['c']
+        assert input_data["a"] == "string"
+        assert input_data["b"] == 123
+        assert "_type" in input_data["c"]
 
     def test_capture_failure_fallback(self):
         """Test fallback behavior when signature binding fails."""
+
         def test_func(*args, **kwargs):
             pass
 
         # This should work with fallback
-        input_data = _capture_input(test_func, (1, 2, 3), {'key': 'value'})
+        input_data = _capture_input(test_func, (1, 2, 3), {"key": "value"})
 
         # Should have fallback info
-        assert '_args_count' in input_data or 'args' in input_data
+        assert "_args_count" in input_data or "args" in input_data
 
 
 class TestOutputCapture:
@@ -326,6 +322,7 @@ class TestOutputCapture:
     @pytest.mark.skip(reason="Output capture now returns text string, not dict")
     def test_capture_non_serializable_output(self):
         """Test capturing non-JSON-serializable output."""
+
         class CustomClass:
             def __str__(self):
                 return "CustomClass result"
@@ -333,8 +330,8 @@ class TestOutputCapture:
         result = CustomClass()
         output_data = _capture_output(result)
 
-        assert output_data['_type'] == 'CustomClass'
-        assert 'CustomClass result' in output_data['_repr']
+        assert output_data["_type"] == "CustomClass"
+        assert "CustomClass result" in output_data["_repr"]
 
     @pytest.mark.skip(reason="Output capture now returns text string, not dict")
     def test_capture_none_output(self):
@@ -347,7 +344,7 @@ class TestOutputCapture:
 class TestFailOpenBehavior:
     """Test fail-open behavior."""
 
-    @patch('magpie_ai.monitor.get_client')
+    @patch("magpie_ai.monitor.get_client")
     def test_monitoring_failure_doesnt_crash(self, mock_get_client):
         """Test that monitoring failures don't crash the function."""
         # Make send_log_sync raise an exception
@@ -363,7 +360,7 @@ class TestFailOpenBehavior:
         result = important_function()
         assert result == "important result"
 
-    @patch('magpie_ai.monitor.get_client')
+    @patch("magpie_ai.monitor.get_client")
     @pytest.mark.skip(reason="metadata parameter not supported in current API")
     def test_metadata_sanitization_failure_doesnt_crash(self, mock_get_client):
         """Test that metadata sanitization failures don't crash."""
@@ -371,10 +368,8 @@ class TestFailOpenBehavior:
         mock_get_client.return_value = mock_client
 
         # Use metadata that might cause issues
-        @monitor(
-            project_id="test-project",
-            metadata={"key": "value"}  # Normal metadata
-        )
+        # Normal metadata
+        @monitor(project_id="test-project", metadata={"key": "value"})
         def test_function():
             return "result"
 
@@ -382,9 +377,15 @@ class TestFailOpenBehavior:
         result = test_function()
         assert result == "result"
 
-    @patch('magpie_ai.monitor.get_client')
-    @patch.object(__import__('sys').modules[__name__], '_capture_input', side_effect=Exception("Capture failed"))
-    @pytest.mark.skip(reason="Patching internal functions not reliable - monitor now uses _capture_input_as_text")
+    @patch("magpie_ai.monitor.get_client")
+    @patch.object(
+        __import__("sys").modules[__name__],
+        "_capture_input",
+        side_effect=Exception("Capture failed"),
+    )
+    @pytest.mark.skip(
+        reason="Patching internal functions not reliable - monitor now uses _capture_input_as_text"
+    )
     def test_input_capture_failure_doesnt_crash(self, mock_capture, mock_get_client):
         """Test that input capture failures don't crash."""
         mock_client = Mock()
@@ -399,10 +400,14 @@ class TestFailOpenBehavior:
 
         # Log should still be sent (with None input)
         call_args = mock_client.send_log_sync.call_args
-        assert call_args.kwargs['input'] is None
+        assert call_args.kwargs["input"] is None
 
-    @patch('magpie_ai.monitor.get_client')
-    @patch.object(__import__('sys').modules[__name__], '_capture_output', side_effect=Exception("Capture failed"))
+    @patch("magpie_ai.monitor.get_client")
+    @patch.object(
+        __import__("sys").modules[__name__],
+        "_capture_output",
+        side_effect=Exception("Capture failed"),
+    )
     @pytest.mark.skip(reason="capture_output parameter not supported in current API")
     def test_output_capture_failure_doesnt_crash(self, mock_capture, mock_get_client):
         """Test that output capture failures don't crash."""
@@ -418,13 +423,13 @@ class TestFailOpenBehavior:
 
         # Log should still be sent (with None output)
         call_args = mock_client.send_log_sync.call_args
-        assert call_args.kwargs['output'] is None
+        assert call_args.kwargs["output"] is None
 
 
 class TestThreadSafety:
     """Test thread-safety of the decorator."""
 
-    @patch('magpie_ai.monitor.get_client')
+    @patch("magpie_ai.monitor.get_client")
     def test_concurrent_executions(self, mock_get_client):
         """Test multiple concurrent executions."""
         mock_client = Mock()
@@ -463,7 +468,7 @@ class TestThreadSafety:
 class TestCaptureFlags:
     """Test capture_input and capture_output flags."""
 
-    @patch('magpie_ai.monitor.get_client')
+    @patch("magpie_ai.monitor.get_client")
     def test_capture_input_disabled(self, mock_get_client):
         """Test disabling input capture."""
         mock_client = Mock()
@@ -476,9 +481,9 @@ class TestCaptureFlags:
         test_function(2, 3)
 
         call_args = mock_client.send_log_sync.call_args
-        assert call_args.kwargs['input'] is None
+        assert call_args.kwargs["input"] is None
 
-    @patch('magpie_ai.monitor.get_client')
+    @patch("magpie_ai.monitor.get_client")
     @pytest.mark.skip(reason="capture_output parameter not supported in current API")
     def test_capture_output_disabled(self, mock_get_client):
         """Test disabling output capture."""
@@ -492,38 +497,34 @@ class TestCaptureFlags:
         test_function()
 
         call_args = mock_client.send_log_sync.call_args
-        assert call_args.kwargs['output'] is None
+        assert call_args.kwargs["output"] is None
 
-    @patch('magpie_ai.monitor.get_client')
+    @patch("magpie_ai.monitor.get_client")
     @pytest.mark.skip(reason="capture_output parameter not supported in current API")
     def test_both_captures_disabled(self, mock_get_client):
         """Test disabling both input and output capture."""
         mock_client = Mock()
         mock_get_client.return_value = mock_client
 
-        @monitor(
-            project_id="test-project",
-            capture_input=False,
-            capture_output=False
-        )
+        @monitor(project_id="test-project", capture_input=False, capture_output=False)
         def test_function(x):
             return x * 2
 
         test_function(5)
 
         call_args = mock_client.send_log_sync.call_args
-        assert call_args.kwargs['input'] is None
-        assert call_args.kwargs['output'] is None
+        assert call_args.kwargs["input"] is None
+        assert call_args.kwargs["output"] is None
         # But other fields should still be present
-        assert call_args.kwargs['status'] == "success"
-        assert call_args.kwargs['function_name'] == "test_function"
+        assert call_args.kwargs["status"] == "success"
+        assert call_args.kwargs["function_name"] == "test_function"
 
 
 class TestAsyncLogging:
     """Test asynchronous logging behavior."""
 
-    @patch('magpie_ai.monitor.threading.Thread')
-    @patch('magpie_ai.monitor.get_client')
+    @patch("magpie_ai.monitor.threading.Thread")
+    @patch("magpie_ai.monitor.get_client")
     def test_logging_uses_background_thread(self, mock_get_client, mock_thread_class):
         """Test that logging happens in background thread."""
         mock_client = Mock()
@@ -543,9 +544,9 @@ class TestAsyncLogging:
 
         # Verify daemon flag is False in current implementation
         call_kwargs = mock_thread_class.call_args.kwargs
-        assert call_kwargs.get('daemon') is False
+        assert call_kwargs.get("daemon") is False
 
-    @patch('magpie_ai.monitor.get_client')
+    @patch("magpie_ai.monitor.get_client")
     def test_main_function_doesnt_wait_for_logging(self, mock_get_client):
         """Test that main function doesn't wait for logging to complete."""
         mock_client = Mock()

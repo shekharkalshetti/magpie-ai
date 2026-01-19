@@ -3,6 +3,7 @@ Configuration for Triton SDK.
 
 Loads settings from environment variables.
 """
+
 import os
 from typing import Optional
 
@@ -16,7 +17,7 @@ class TritonConfig:
         backend_url: Optional[str] = None,
         enabled: bool = True,
         timeout: int = 5,
-        fail_open: bool = True
+        fail_open: bool = True,
     ):
         """
         Initialize Triton SDK configuration.
@@ -29,10 +30,8 @@ class TritonConfig:
             fail_open: If True, failures won't crash the app
         """
         self.api_key = api_key or os.getenv("MAGPIE_API_KEY")
-        self.backend_url = backend_url or os.getenv(
-            "MAGPIE_BACKEND_URL", "http://localhost:8000")
-        self.enabled = enabled and os.getenv(
-            "MAGPIE_ENABLED", "true").lower() != "false"
+        self.backend_url = backend_url or os.getenv("MAGPIE_BACKEND_URL", "http://localhost:8000")
+        self.enabled = enabled and os.getenv("MAGPIE_ENABLED", "true").lower() != "false"
         self.timeout = timeout
         self.fail_open = fail_open
 
@@ -62,7 +61,7 @@ def configure(
     backend_url: Optional[str] = None,
     enabled: bool = True,
     timeout: int = 5,
-    fail_open: bool = True
+    fail_open: bool = True,
 ):
     """
     Configure the Triton SDK.
@@ -82,5 +81,5 @@ def configure(
         backend_url=backend_url,
         enabled=enabled,
         timeout=timeout,
-        fail_open=fail_open
+        fail_open=fail_open,
     )

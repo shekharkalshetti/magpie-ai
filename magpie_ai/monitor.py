@@ -6,6 +6,7 @@ Usage:
     def my_llm_function(prompt):
         return llm.call(prompt)
 """
+
 import functools
 import threading
 import atexit
@@ -23,10 +24,14 @@ from magpie_ai.content_moderation import (
     ContentModerator,
     ContentModerationError,
     ModerationResult,
-    get_moderator
+    get_moderator,
 )
 from magpie_ai.pricing import calculate_costs, get_context_utilization
-from magpie_ai.token_extraction import extract_tokens_from_response, extract_text_from_response, estimate_tokens_from_text
+from magpie_ai.token_extraction import (
+    extract_tokens_from_response,
+    extract_text_from_response,
+    estimate_tokens_from_text,
+)
 
 F = TypeVar("F", bound=Callable[..., Any])
 
@@ -121,7 +126,7 @@ def monitor(
     llm_model: str = "qwen2.5-1.5b-instruct",
     model: Optional[str] = None,
     input_token_price: Optional[float] = None,
-    output_token_price: Optional[float] = None
+    output_token_price: Optional[float] = None,
 ) -> Callable[[F], F]:
     """
     Decorator for monitoring function execution.
@@ -217,8 +222,9 @@ def monitor(
                 llm_model=llm_model,
                 model=model,
                 input_token_price=input_token_price,
-                output_token_price=output_token_price
+                output_token_price=output_token_price,
             )
+
         return cast(F, wrapper)
 
     return decorator
@@ -238,7 +244,7 @@ def _execute_monitored(
     llm_model: str,
     model: Optional[str],
     input_token_price: Optional[float],
-    output_token_price: Optional[float]
+    output_token_price: Optional[float],
 ):
     """
     Execute function with monitoring.
@@ -313,15 +319,12 @@ def _execute_monitored(
                     input_text=input_text,
                     project_id=effective_project_id,
                     llm_url=llm_url,
-                    llm_model=llm_model
+                    llm_model=llm_model,
                 )
             elif pii_enabled:
                 # PII only
                 args, kwargs, pii_info = _process_pii_only(
-                    args=args,
-                    kwargs=kwargs,
-                    llm_url=llm_url,
-                    llm_model=llm_model
+                    args=args, kwargs=kwargs, llm_url=llm_url, llm_model=llm_model
                 )
             else:
                 # Content moderation only
@@ -329,7 +332,7 @@ def _execute_monitored(
                     input_text=input_text,
                     project_id=effective_project_id,
                     llm_url=llm_url,
-                    llm_model=llm_model
+                    llm_model=llm_model,
                 )
 
             # Add processing info to metadata
@@ -357,18 +360,19 @@ def _execute_monitored(
                     # Convert dict back to ModerationResult for the exception
                     # to maintain the API contract
                     from magpie_ai.content_moderation import ModerationResult
+
                     mod_result = ModerationResult(
-                        is_safe=moderation_info.get('is_safe', False),
-                        action=moderation_info.get('action'),
+                        is_safe=moderation_info.get("is_safe", False),
+                        action=moderation_info.get("action"),
                         violations=[],  # Already included in moderation_info
                         raw_response=None,
-                        error=moderation_info.get('error')
+                        error=moderation_info.get("error"),
                     )
                     # Will be caught below and raise ContentModerationError in finally
                     raise ContentModerationError(
                         f"Input blocked due to policy violations: "
                         f"{moderation_info.get('violated_policies', [])}",
-                        mod_result
+                        mod_result,
                     )
 
         except ContentModerationError as e:
@@ -422,7 +426,8 @@ def _execute_monitored(
         # Extract tokens from response if available
         try:
             input_tokens, output_tokens = extract_tokens_from_response(
-                result, input_text=input_text)
+                result, input_text=input_text
+            )
 
             # Calculate costs if we have tokens
             if input_tokens and output_tokens:
@@ -431,14 +436,12 @@ def _execute_monitored(
                     output_tokens=output_tokens,
                     model=model,
                     input_price_per_1m=input_token_price,
-                    output_price_per_1m=output_token_price
+                    output_price_per_1m=output_token_price,
                 )
 
                 # Calculate context utilization
                 context_utilization = get_context_utilization(
-                    input_tokens=input_tokens,
-                    output_tokens=output_tokens,
-                    model=model
+                    input_tokens=input_tokens, output_tokens=output_tokens, model=model
                 )
         except Exception:
             # Fail open - if pricing/token extraction fails, continue without costs
@@ -492,7 +495,7 @@ def _execute_monitored(
                     input_cost=input_cost,
                     output_cost=output_cost,
                     pii_info=pii_info,
-                    moderation_info=moderation_info
+                    moderation_info=moderation_info,
                 )
                 # log_id is returned directly as string from send_log_sync
             except Exception as e:
@@ -520,7 +523,7 @@ def _execute_monitored(
                     input_cost=input_cost,
                     output_cost=output_cost,
                     pii_info=pii_info,
-                    moderation_info=moderation_info
+                    moderation_info=moderation_info,
                 )
             except Exception:
                 # Fail open - never crash user's code due to monitoring
@@ -533,12 +536,7 @@ def _execute_monitored(
         # for the AI output. This doesn't block the user and allows
         # ReviewQueue items to be created asynchronously.
         # ============================================================
-        if (
-            content_moderation_enabled
-            and output_text
-            and status == "success"
-            and log_id
-        ):
+        if content_moderation_enabled and output_text and status == "success" and log_id:
             try:
                 from src.tasks.moderation_tasks import moderate_output
 
@@ -548,7 +546,7 @@ def _execute_monitored(
                     output_text=output_text,
                     project_id=effective_project_id,
                     llm_url=llm_url,
-                    llm_model=llm_model
+                    llm_model=llm_model,
                 )
             except Exception:
                 # Fail open - if task queueing fails, continue
@@ -582,12 +580,7 @@ def _extract_input_text(args: tuple, kwargs: dict) -> str:
 
 
 def _process_parallel(
-    args: tuple,
-    kwargs: dict,
-    input_text: str,
-    project_id: str,
-    llm_url: str,
-    llm_model: str
+    args: tuple, kwargs: dict, input_text: str, project_id: str, llm_url: str, llm_model: str
 ) -> tuple[tuple, dict, Optional[Dict], Optional[Dict]]:
     """
     Run PII detection and content moderation in parallel.
@@ -608,8 +601,7 @@ def _process_parallel(
     pii_future = executor.submit(
         _run_pii_detection, pii_detector, args, kwargs)
     moderation_future = executor.submit(
-        _run_content_moderation, moderator, input_text
-    )
+        _run_content_moderation, moderator, input_text)
 
     # Wait for both to complete
     processed_args, processed_kwargs, pii_info = pii_future.result(timeout=60)
@@ -619,9 +611,7 @@ def _process_parallel(
 
 
 def _run_pii_detection(
-    detector: PIIDetector,
-    args: tuple,
-    kwargs: dict
+    detector: PIIDetector, args: tuple, kwargs: dict
 ) -> tuple[tuple, dict, Optional[Dict]]:
     """Run PII detection and redaction on inputs."""
     pii_info = None
@@ -645,10 +635,7 @@ def _run_pii_detection(
     return tuple(processed_args), processed_kwargs, pii_info
 
 
-def _run_content_moderation(
-    moderator: ContentModerator,
-    text: str
-) -> Optional[Dict]:
+def _run_content_moderation(moderator: ContentModerator, text: str) -> Optional[Dict]:
     """Run content moderation on input text."""
     try:
         result = moderator.moderate(text, block_on_violation=True)
@@ -658,15 +645,12 @@ def _run_content_moderation(
         # The exception contains the ModerationResult with violation details
         result_dict = e.result.to_dict()
         # Mark that blocking occurred
-        result_dict['blocked'] = True
+        result_dict["blocked"] = True
         return result_dict
 
 
 def _process_pii_only(
-    args: tuple,
-    kwargs: dict,
-    llm_url: str,
-    llm_model: str
+    args: tuple, kwargs: dict, llm_url: str, llm_model: str
 ) -> tuple[tuple, dict, Optional[Dict]]:
     """Process only PII detection (synchronous)."""
     detector = get_detector(llm_url=llm_url, model=llm_model)
@@ -674,10 +658,7 @@ def _process_pii_only(
 
 
 def _process_moderation_only(
-    input_text: str,
-    project_id: str,
-    llm_url: str,
-    llm_model: str
+    input_text: str, project_id: str, llm_url: str, llm_model: str
 ) -> Optional[Dict]:
     """Process only content moderation (synchronous)."""
     moderator = get_moderator(project_id=project_id,
@@ -685,11 +666,7 @@ def _process_moderation_only(
     return _run_content_moderation(moderator, input_text)
 
 
-def _capture_input_as_text(
-    func: Callable,
-    args: tuple,
-    kwargs: dict
-) -> str:
+def _capture_input_as_text(func: Callable, args: tuple, kwargs: dict) -> str:
     """
     Capture function input as plaintext.
 
@@ -743,13 +720,14 @@ def _send_log_async(
     input_cost: float,
     output_cost: float,
     pii_info: Optional[Dict[str, Any]],
-    moderation_info: Optional[Dict[str, Any]]
+    moderation_info: Optional[Dict[str, Any]],
 ):
     """
     Send log to backend asynchronously in a background thread.
 
     Thread-safe implementation that doesn't block the main execution.
     """
+
     def send_in_thread():
         try:
             # Use synchronous HTTP request (no asyncio, works during shutdown)
@@ -771,7 +749,7 @@ def _send_log_async(
                 input_cost=input_cost,
                 output_cost=output_cost,
                 pii_info=pii_info,
-                moderation_info=moderation_info
+                moderation_info=moderation_info,
             )
         except Exception:
             # Fail open - silently ignore all errors

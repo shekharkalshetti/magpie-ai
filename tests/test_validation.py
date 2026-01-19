@@ -3,6 +3,7 @@ Tests for client-side metadata validation.
 
 Tests schema caching, validation logic, and integration with client.
 """
+
 import pytest
 from unittest.mock import Mock, patch
 from datetime import datetime, timedelta
@@ -14,7 +15,7 @@ from magpie_ai.validation import (
     sanitize_metadata,
     clear_schema_cache,
     _validate_type,
-    _validate_enum
+    _validate_enum,
 )
 
 
@@ -37,7 +38,7 @@ class TestValidationResult:
             missing_keys=["user_id"],
             invalid_types={"temperature": "Expected int, got str"},
             invalid_enum_values={"env": "Not in allowed values"},
-            unrecognized_keys=["unknown"]
+            unrecognized_keys=["unknown"],
         )
         assert result.is_valid is False
         assert result.missing_keys == ["user_id"]
@@ -50,14 +51,13 @@ class TestValidationResult:
         result = ValidationResult(
             is_valid=False,
             missing_keys=["user_id"],
-            invalid_types={"temperature": "Expected int, got str"}
+            invalid_types={"temperature": "Expected int, got str"},
         )
 
         dict_result = result.to_dict()
         assert dict_result["is_valid"] is False
         assert dict_result["missing_keys"] == ["user_id"]
-        assert dict_result["invalid_types"] == {
-            "temperature": "Expected int, got str"}
+        assert dict_result["invalid_types"] == {"temperature": "Expected int, got str"}
         # Empty lists/dicts should not be included
         assert "invalid_enum_values" not in dict_result
         assert "unrecognized_keys" not in dict_result
@@ -78,11 +78,9 @@ class TestMetadataSchemaCache:
         cache = MetadataSchemaCache()
 
         # Mock the fetch method
-        mock_schema = {
-            "model": {"value_type": "string", "required": True, "enum_values": None}
-        }
+        mock_schema = {"model": {"value_type": "string", "required": True, "enum_values": None}}
 
-        with patch.object(cache, '_fetch_schema', return_value=mock_schema):
+        with patch.object(cache, "_fetch_schema", return_value=mock_schema):
             schema = cache.get_schema("project-1", "http://backend", "api-key")
 
             assert schema == mock_schema
@@ -94,14 +92,12 @@ class TestMetadataSchemaCache:
         cache = MetadataSchemaCache()
 
         # Pre-populate cache
-        mock_schema = {
-            "model": {"value_type": "string", "required": True, "enum_values": None}
-        }
+        mock_schema = {"model": {"value_type": "string", "required": True, "enum_values": None}}
         cache._cache["project-1"] = mock_schema
         cache._cache_times["project-1"] = datetime.utcnow()
 
         # Get from cache (no fetch should occur)
-        with patch.object(cache, '_fetch_schema') as mock_fetch:
+        with patch.object(cache, "_fetch_schema") as mock_fetch:
             schema = cache.get_schema("project-1", "http://backend", "api-key")
 
             assert schema == mock_schema
@@ -115,11 +111,10 @@ class TestMetadataSchemaCache:
         old_schema = {"old": "schema"}
         new_schema = {"new": "schema"}
         cache._cache["project-1"] = old_schema
-        cache._cache_times["project-1"] = datetime.utcnow() - \
-            timedelta(seconds=120)
+        cache._cache_times["project-1"] = datetime.utcnow() - timedelta(seconds=120)
 
         # Get from cache (should re-fetch)
-        with patch.object(cache, '_fetch_schema', return_value=new_schema):
+        with patch.object(cache, "_fetch_schema", return_value=new_schema):
             schema = cache.get_schema("project-1", "http://backend", "api-key")
 
             assert schema == new_schema
@@ -129,7 +124,7 @@ class TestMetadataSchemaCache:
         """Test fetch failure returns None."""
         cache = MetadataSchemaCache()
 
-        with patch.object(cache, '_fetch_schema', side_effect=Exception("Network error")):
+        with patch.object(cache, "_fetch_schema", side_effect=Exception("Network error")):
             schema = cache.get_schema("project-1", "http://backend", "api-key")
 
             assert schema is None
@@ -215,110 +210,101 @@ class TestEnumValidation:
 class TestMetadataValidation:
     """Test metadata validation function."""
 
-    @patch('magpie_ai.validation._schema_cache')
+    @patch("magpie_ai.validation._schema_cache")
     def test_validation_with_valid_metadata(self, mock_cache):
         """Test validation with valid metadata."""
         schema = {
             "model": {"value_type": "string", "required": True, "enum_values": None},
-            "temperature": {"value_type": "int", "required": False, "enum_values": None}
+            "temperature": {"value_type": "int", "required": False, "enum_values": None},
         }
         mock_cache.get_schema.return_value = schema
 
         metadata = {"model": "gpt-4", "temperature": 7}
-        result = validate_metadata(
-            metadata, "project-1", "http://backend", "api-key")
+        result = validate_metadata(metadata, "project-1", "http://backend", "api-key")
 
         assert result.is_valid is True
         assert result.missing_keys == []
         assert result.invalid_types == {}
 
-    @patch('magpie_ai.validation._schema_cache')
+    @patch("magpie_ai.validation._schema_cache")
     def test_validation_with_missing_required_keys(self, mock_cache):
         """Test validation with missing required keys."""
         schema = {
             "model": {"value_type": "string", "required": True, "enum_values": None},
-            "user_id": {"value_type": "string", "required": True, "enum_values": None}
+            "user_id": {"value_type": "string", "required": True, "enum_values": None},
         }
         mock_cache.get_schema.return_value = schema
 
         metadata = {"model": "gpt-4"}
-        result = validate_metadata(
-            metadata, "project-1", "http://backend", "api-key")
+        result = validate_metadata(metadata, "project-1", "http://backend", "api-key")
 
         assert result.is_valid is False
         assert "user_id" in result.missing_keys
 
-    @patch('magpie_ai.validation._schema_cache')
+    @patch("magpie_ai.validation._schema_cache")
     def test_validation_with_invalid_types(self, mock_cache):
         """Test validation with invalid types."""
         schema = {
             "model": {"value_type": "string", "required": True, "enum_values": None},
-            "temperature": {"value_type": "int", "required": False, "enum_values": None}
+            "temperature": {"value_type": "int", "required": False, "enum_values": None},
         }
         mock_cache.get_schema.return_value = schema
 
         metadata = {"model": 123, "temperature": "high"}
-        result = validate_metadata(
-            metadata, "project-1", "http://backend", "api-key")
+        result = validate_metadata(metadata, "project-1", "http://backend", "api-key")
 
         assert result.is_valid is False
         assert "model" in result.invalid_types
         assert "temperature" in result.invalid_types
 
-    @patch('magpie_ai.validation._schema_cache')
+    @patch("magpie_ai.validation._schema_cache")
     def test_validation_with_invalid_enum_values(self, mock_cache):
         """Test validation with invalid enum values."""
         schema = {
             "environment": {
                 "value_type": "enum",
                 "required": True,
-                "enum_values": ["dev", "staging", "prod"]
+                "enum_values": ["dev", "staging", "prod"],
             }
         }
         mock_cache.get_schema.return_value = schema
 
         metadata = {"environment": "local"}
-        result = validate_metadata(
-            metadata, "project-1", "http://backend", "api-key")
+        result = validate_metadata(metadata, "project-1", "http://backend", "api-key")
 
         assert result.is_valid is False
         assert "environment" in result.invalid_enum_values
 
-    @patch('magpie_ai.validation._schema_cache')
+    @patch("magpie_ai.validation._schema_cache")
     def test_validation_with_unrecognized_keys(self, mock_cache):
         """Test validation with unrecognized keys."""
-        schema = {
-            "model": {"value_type": "string", "required": True, "enum_values": None}
-        }
+        schema = {"model": {"value_type": "string", "required": True, "enum_values": None}}
         mock_cache.get_schema.return_value = schema
 
         metadata = {"model": "gpt-4", "unknown_field": "value"}
-        result = validate_metadata(
-            metadata, "project-1", "http://backend", "api-key")
+        result = validate_metadata(metadata, "project-1", "http://backend", "api-key")
 
         assert result.is_valid is True  # Unrecognized keys don't invalidate
         assert "unknown_field" in result.unrecognized_keys
 
-    @patch('magpie_ai.validation._schema_cache')
+    @patch("magpie_ai.validation._schema_cache")
     def test_validation_without_schema(self, mock_cache):
         """Test validation when schema is unavailable."""
         mock_cache.get_schema.return_value = None
 
         metadata = {"model": "gpt-4"}
-        result = validate_metadata(
-            metadata, "project-1", "http://backend", "api-key")
+        result = validate_metadata(metadata, "project-1", "http://backend", "api-key")
 
         # Should return valid when schema unavailable (fail-open)
         assert result.is_valid is True
 
-    @patch('magpie_ai.validation._schema_cache')
+    @patch("magpie_ai.validation._schema_cache")
     def test_validation_exception_handling(self, mock_cache):
         """Test validation handles exceptions gracefully."""
         mock_cache.get_schema.side_effect = Exception("Network error")
 
         metadata = {"model": "gpt-4"}
-        result = validate_metadata(
-            metadata, "project-1", "http://backend", "api-key")
+        result = validate_metadata(metadata, "project-1", "http://backend", "api-key")
 
         # Should return valid on exception (fail-open)
         assert result.is_valid is True
@@ -329,29 +315,21 @@ class TestSanitizeMetadata:
 
     def test_sanitize_primitives(self):
         """Test sanitizing primitive types."""
-        metadata = {
-            "string": "value",
-            "int": 123,
-            "float": 3.14,
-            "bool": True,
-            "none": None
-        }
+        metadata = {"string": "value", "int": 123, "float": 3.14, "bool": True, "none": None}
 
         result = sanitize_metadata(metadata)
         assert result == metadata
 
     def test_sanitize_collections(self):
         """Test sanitizing lists and dicts."""
-        metadata = {
-            "list": [1, 2, 3],
-            "dict": {"key": "value"}
-        }
+        metadata = {"list": [1, 2, 3], "dict": {"key": "value"}}
 
         result = sanitize_metadata(metadata)
         assert result == metadata
 
     def test_sanitize_non_serializable(self):
         """Test sanitizing non-serializable values."""
+
         class CustomClass:
             def __str__(self):
                 return "custom"
@@ -359,7 +337,7 @@ class TestSanitizeMetadata:
         metadata = {
             "callable": lambda x: x,
             "object": CustomClass(),
-            "datetime": datetime(2024, 1, 1)
+            "datetime": datetime(2024, 1, 1),
         }
 
         result = sanitize_metadata(metadata)

@@ -13,8 +13,7 @@ from typing import Optional
 # Default shared prompts directory (configurable via env)
 # Should match the backend's MAGPIE_PROMPTS_DIR
 DEFAULT_PROMPTS_DIR = os.getenv(
-    "MAGPIE_PROMPTS_DIR",
-    str(Path(__file__).parent.parent.parent / "data" / "prompts")
+    "MAGPIE_PROMPTS_DIR", str(Path(__file__).parent.parent.parent / "data" / "prompts")
 )
 
 

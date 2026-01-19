@@ -4,6 +4,7 @@ PII Detection and Redaction Module.
 Uses local LLM to detect and redact PII (Personally Identifiable Information).
 When enabled, automatically redacts PII from inputs before LLM execution.
 """
+
 import json
 import httpx
 from typing import Dict, Any, Optional, Tuple
@@ -13,6 +14,7 @@ from dataclasses import dataclass
 @dataclass
 class PIIResult:
     """Result of PII detection and redaction."""
+
     contains_pii: bool
     redacted_text: Optional[str]
     pii_types: list[str]
@@ -24,7 +26,7 @@ class PIIResult:
             "contains_pii": self.contains_pii,
             "pii_types": self.pii_types,
             "redacted": self.redacted_text is not None,
-            "error": self.error
+            "error": self.error,
         }
 
 
@@ -36,7 +38,9 @@ class PIIDetector:
     before passing to the wrapped LLM function.
     """
 
-    def __init__(self, llm_url: str = "http://localhost:1234", model: str = "qwen2.5-1.5b-instruct"):
+    def __init__(
+        self, llm_url: str = "http://localhost:1234", model: str = "qwen2.5-1.5b-instruct"
+    ):
         """
         Initialize PII detector.
 
@@ -77,11 +81,7 @@ Now process the text above and return ONLY the JSON:"""
             PIIResult with detection info and redacted text
         """
         if not text or not isinstance(text, str):
-            return PIIResult(
-                contains_pii=False,
-                redacted_text=None,
-                pii_types=[]
-            )
+            return PIIResult(contains_pii=False, redacted_text=None, pii_types=[])
 
         # Check cache first (use first 100 chars as key)
         cache_key = text[:100]
@@ -96,22 +96,22 @@ Now process the text above and return ONLY the JSON:"""
                 self.api_endpoint,
                 json={
                     "model": self.model,
-                    "messages": [
-                        {"role": "user", "content": prompt}
-                    ],
+                    "messages": [{"role": "user", "content": prompt}],
                     "temperature": 0,
                     "max_tokens": 500,
-                    "stream": False
+                    "stream": False,
                 },
-                timeout=30
+                timeout=30,
             )
 
             response.raise_for_status()
             api_result = response.json()
 
             # Parse response from LM Studio format
-            response_text = api_result.get("choices", [{}])[0].get(
-                "message", {}).get("content", "{}")
+            response_text = (
+                api_result.get("choices", [{}])[0].get(
+                    "message", {}).get("content", "{}")
+            )
 
             # Clean up response text - remove markdown code blocks if present
             response_text = response_text.strip()
@@ -131,7 +131,7 @@ Now process the text above and return ONLY the JSON:"""
                     contains_pii=False,
                     redacted_text=None,
                     pii_types=[],
-                    error=f"Failed to parse response: {str(e)}"
+                    error=f"Failed to parse response: {str(e)}",
                 )
                 self._cache[cache_key] = result
                 return result
@@ -142,9 +142,7 @@ Now process the text above and return ONLY the JSON:"""
                 "redacted_text") if contains_pii else None
 
             result = PIIResult(
-                contains_pii=contains_pii,
-                redacted_text=redacted_text,
-                pii_types=pii_types
+                contains_pii=contains_pii, redacted_text=redacted_text, pii_types=pii_types
             )
 
             # Cache the result
@@ -163,7 +161,7 @@ Now process the text above and return ONLY the JSON:"""
                 contains_pii=False,
                 redacted_text=None,
                 pii_types=[],
-                error=f"LM Studio connection failed: {str(e)}"
+                error=f"LM Studio connection failed: {str(e)}",
             )
         except Exception as e:
             # Fail open for other errors
@@ -171,7 +169,7 @@ Now process the text above and return ONLY the JSON:"""
                 contains_pii=False,
                 redacted_text=None,
                 pii_types=[],
-                error=f"PII detection failed: {str(e)}"
+                error=f"PII detection failed: {str(e)}",
             )
 
     def process_input(self, input_data: Any) -> Tuple[Any, Optional[Dict[str, Any]]]:
@@ -190,11 +188,11 @@ Now process the text above and return ONLY the JSON:"""
         elif isinstance(input_data, dict):
             # Look for common prompt fields
             text_to_analyze = (
-                input_data.get("prompt") or
-                input_data.get("message") or
-                input_data.get("text") or
-                input_data.get("content") or
-                json.dumps(input_data)
+                input_data.get("prompt")
+                or input_data.get("message")
+                or input_data.get("text")
+                or input_data.get("content")
+                or json.dumps(input_data)
             )
         elif isinstance(input_data, (list, tuple)):
             text_to_analyze = " ".join(str(item) for item in input_data)
@@ -223,7 +221,9 @@ Now process the text above and return ONLY the JSON:"""
 _detector: Optional[PIIDetector] = None
 
 
-def get_detector(llm_url: str = "http://localhost:1234", model: str = "qwen2.5-1.5b-instruct") -> PIIDetector:
+def get_detector(
+    llm_url: str = "http://localhost:1234", model: str = "qwen2.5-1.5b-instruct"
+) -> PIIDetector:
     """Get global PII detector instance."""
     global _detector
     if _detector is None:

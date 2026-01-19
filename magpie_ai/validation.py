@@ -4,6 +4,7 @@ Metadata validation utilities.
 Client-side validation of metadata against project schema.
 Implements caching and best-effort validation that never blocks execution.
 """
+
 import httpx
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
@@ -18,7 +19,7 @@ class ValidationResult:
         missing_keys: Optional[List[str]] = None,
         invalid_types: Optional[Dict[str, str]] = None,
         invalid_enum_values: Optional[Dict[str, str]] = None,
-        unrecognized_keys: Optional[List[str]] = None
+        unrecognized_keys: Optional[List[str]] = None,
     ):
         self.is_valid = is_valid
         self.missing_keys = missing_keys or []
@@ -28,9 +29,7 @@ class ValidationResult:
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for logging."""
-        result = {
-            "is_valid": self.is_valid
-        }
+        result = {"is_valid": self.is_valid}
         if self.missing_keys:
             result["missing_keys"] = self.missing_keys
         if self.invalid_types:
@@ -62,10 +61,7 @@ class MetadataSchemaCache:
         self.ttl_seconds = ttl_seconds
 
     def get_schema(
-        self,
-        project_id: str,
-        backend_url: str,
-        api_key: str
+        self, project_id: str, backend_url: str, api_key: str
     ) -> Optional[Dict[str, Any]]:
         """
         Get metadata schema for a project.
@@ -99,10 +95,7 @@ class MetadataSchemaCache:
             return None
 
     def _fetch_schema(
-        self,
-        project_id: str,
-        backend_url: str,
-        api_key: str
+        self, project_id: str, backend_url: str, api_key: str
     ) -> Optional[Dict[str, Any]]:
         """
         Fetch metadata schema from backend.
@@ -120,7 +113,7 @@ class MetadataSchemaCache:
             with httpx.Client(timeout=2.0) as client:
                 response = client.get(
                     f"{backend_url}/api/v1/projects/{project_id}/metadata-keys",
-                    headers={"Authorization": f"Bearer {api_key}"}
+                    headers={"Authorization": f"Bearer {api_key}"},
                 )
                 response.raise_for_status()
 
@@ -131,7 +124,7 @@ class MetadataSchemaCache:
                     schema[key_config["key"]] = {
                         "value_type": key_config["value_type"],
                         "required": key_config["required"],
-                        "enum_values": key_config.get("enum_values")
+                        "enum_values": key_config.get("enum_values"),
                     }
 
                 return schema
@@ -150,10 +143,7 @@ _schema_cache = MetadataSchemaCache()
 
 
 def validate_metadata(
-    metadata: Dict[str, Any],
-    project_id: str,
-    backend_url: str,
-    api_key: str
+    metadata: Dict[str, Any], project_id: str, backend_url: str, api_key: str
 ) -> ValidationResult:
     """
     Validate metadata against project schema.
@@ -225,7 +215,7 @@ def validate_metadata(
             missing_keys=missing_keys,
             invalid_types=invalid_types,
             invalid_enum_values=invalid_enum_values,
-            unrecognized_keys=unrecognized_keys
+            unrecognized_keys=unrecognized_keys,
         )
 
     except Exception:
