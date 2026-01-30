@@ -53,14 +53,16 @@ def _validate_monitor_params(
 ) -> None:
     """Validate monitor decorator parameters."""
     if not project_id or not isinstance(project_id, str):
-        raise ValueError("project_id is required and must be a non-empty string")
+        raise ValueError(
+            "project_id is required and must be a non-empty string")
 
     if custom is not None and not isinstance(custom, dict):
         raise TypeError("custom parameter must be a dictionary")
 
     # Pricing validation: either use model name or explicit prices, not both
     has_model = model is not None
-    has_explicit_pricing = (input_token_price is not None) or (output_token_price is not None)
+    has_explicit_pricing = (input_token_price is not None) or (
+        output_token_price is not None)
 
     if has_model and has_explicit_pricing:
         raise ValueError(
@@ -85,7 +87,8 @@ def _get_executor() -> ThreadPoolExecutor:
     """Get or create the shared thread pool executor."""
     global _executor
     if _executor is None:
-        _executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="magpie_ai_")
+        _executor = ThreadPoolExecutor(
+            max_workers=4, thread_name_prefix="magpie_ai_")
     return _executor
 
 
@@ -363,7 +366,8 @@ def _execute_monitored(
 
                     mod_result = ModerationResult(
                         is_safe=moderation_info.get("is_safe", False),
-                        action=ModerationAction(moderation_info.get("action", "block")),
+                        action=ModerationAction(
+                            moderation_info.get("action", "block")),
                         violations=[],  # Already included in moderation_info
                         raw_response=None,
                         error=moderation_info.get("error"),
@@ -459,7 +463,8 @@ def _execute_monitored(
     finally:
         # Always send log, even if function failed
         completed_at = datetime.utcnow()
-        total_latency_ms = int((completed_at - started_at).total_seconds() * 1000)
+        total_latency_ms = int(
+            (completed_at - started_at).total_seconds() * 1000)
 
         # For blocked inputs, set costs to zero since LLM was never called
         # (moderation LLM is self-hosted, so no cost to client)
@@ -594,11 +599,14 @@ def _process_parallel(
     executor = _get_executor()
 
     pii_detector = get_detector(llm_url=llm_url, model=llm_model)
-    moderator = get_moderator(project_id=project_id, llm_url=llm_url, model=llm_model)
+    moderator = get_moderator(project_id=project_id,
+                              llm_url=llm_url, model=llm_model)
 
     # Submit both tasks
-    pii_future = executor.submit(_run_pii_detection, pii_detector, args, kwargs)
-    moderation_future = executor.submit(_run_content_moderation, moderator, input_text)
+    pii_future = executor.submit(
+        _run_pii_detection, pii_detector, args, kwargs)
+    moderation_future = executor.submit(
+        _run_content_moderation, moderator, input_text)
 
     # Wait for both to complete
     processed_args, processed_kwargs, pii_info = pii_future.result(timeout=60)
@@ -658,13 +666,18 @@ def _process_moderation_only(
     input_text: str, project_id: str, llm_url: str, llm_model: str
 ) -> Optional[Dict]:
     """Process only content moderation (synchronous)."""
-    moderator = get_moderator(project_id=project_id, llm_url=llm_url, model=llm_model)
+    moderator = get_moderator(project_id=project_id,
+                              llm_url=llm_url, model=llm_model)
     return _run_content_moderation(moderator, input_text)
 
 
 def _capture_input_as_text(func: Callable, args: tuple, kwargs: dict) -> str:
     """
     Capture function input as plaintext.
+
+    For class methods with conversation history (messages list),
+    extracts only the last user message instead of entire history.
+    For simple functions, captures all arguments.
 
     Returns a string representation suitable for logging.
     """
@@ -677,7 +690,25 @@ def _capture_input_as_text(func: Callable, args: tuple, kwargs: dict) -> str:
         # Build plaintext representation
         parts = []
         for param_name, param_value in bound_args.arguments.items():
-            if isinstance(param_value, str):
+            # Skip 'self' parameter for class methods
+            if param_name == "self":
+                continue
+
+            # Special handling for 'messages' parameter (conversation history)
+            if param_name == "messages" and isinstance(param_value, list):
+                # Extract only the last user message from conversation
+                last_user_msg = None
+                for msg in reversed(param_value):
+                    if isinstance(msg, dict) and msg.get("role") == "user":
+                        last_user_msg = msg.get("content", "")
+                        break
+
+                if last_user_msg:
+                    parts.append(last_user_msg[:500])
+                else:
+                    # Fallback if no user message found
+                    parts.append(f"messages: {str(param_value)[:200]}")
+            elif isinstance(param_value, str):
                 parts.append(f"{param_name}: {param_value[:500]}")
             else:
                 parts.append(f"{param_name}: {str(param_value)[:500]}")
